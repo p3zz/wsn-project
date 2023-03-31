@@ -21,7 +21,7 @@ struct my_collect_conn {
 /*---------------------------------------------------------------------------*/
 /* Callback structure */
 struct my_collect_callbacks {
-  void (*recv)(const linkaddr_t *originator, uint8_t hops);
+  void (*recv)(const linkaddr_t *originator, const linkaddr_t *parent);
   void (*sr_recv)(struct my_collect_conn *ptr, uint8_t hops);
 };
 /*---------------------------------------------------------------------------*/

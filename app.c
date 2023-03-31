@@ -57,7 +57,7 @@ __attribute__((packed))
 test_msg_t;
 /*---------------------------------------------------------------------------*/
 static struct my_collect_conn my_collect;
-static void recv_cb(const linkaddr_t *originator, uint8_t hops);
+static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent);
 /*
  * Source Routing Callback
  * This function is called upon receiving a message from the sink in a node.
@@ -160,15 +160,15 @@ PROCESS_THREAD(app_process, ev, data)
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
-static void recv_cb(const linkaddr_t *originator, uint8_t hops) {
+static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent) {
   test_msg_t msg;
   if (packetbuf_datalen() != sizeof(msg)) {
     printf("App: wrong length: %d\n", packetbuf_datalen());
     return;
   }
   memcpy(&msg, packetbuf_dataptr(), sizeof(msg));
-  printf("App: Recv from %02x:%02x seqn %u hops %u\n",
-    originator->u8[0], originator->u8[1], msg.seqn, hops);
+  printf("App: Recv from %02x:%02x seqn %u parent %02x:%02x\n",
+    originator->u8[0], originator->u8[1], msg.seqn, parent->u8[0], parent->u8[1]);
 }
 /*---------------------------------------------------------------------------*/
 static void

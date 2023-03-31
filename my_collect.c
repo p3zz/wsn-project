@@ -180,39 +180,22 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
 /* Header structure for data packets */
 struct collect_header {
   linkaddr_t source;
-  uint8_t hops;
+  linkaddr_t parent;
 } __attribute__((packed));
 /*---------------------------------------------------------------------------*/
 /* Data Collection: send function */
 int
 my_collect_send(struct my_collect_conn *conn)
 {
-  /* TO DO 5:
-   * 1. Check if the node is connected (has a parent), IF NOT return -1;
-   * 2. If possible, allocate space for the data collection header. If this is
-   *    not possible, return -2;
-   * 3. Prepare and insert the header in the packet buffer;
-   *    Tip: The Rime address of a node is stored in linkaddr_node_addr!
-   *         (check contiki/core/net/linkaddr.h for additional details);
-   * 4. Send the packet to the parent using unicast and return the status
-   *    of unicast_send() to the application.
-   */
-
-  /* 5.1 */
   if (linkaddr_cmp(&conn->parent, &linkaddr_null)) // The node is still disconnected 
     return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
-  /* 5.2 */
-  if (packetbuf_hdralloc(sizeof(struct collect_header))) { 
-    /* 5.3 */
-    struct collect_header hdr = {.source=linkaddr_node_addr, .hops=0}; // Prepare the collection header
-    memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr)); /* Copy the collection header in front of 
-                                                    * the application payload (at the beginning of
-                                                    * the packet buffer) */
-    /* 5.4 */
-    return unicast_send(&conn->uc, &conn->parent);
-  }
-  else // Packetbuf_hdralloc() was unable to allocate sufficient header space (payload too big)
-    return -2; // Inform the app that an issue with packetbuf_hdralloc() has occurred
+  if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2; 
+  struct collect_header hdr = {.source=linkaddr_node_addr, .parent=conn->parent}; // Prepare the collection header
+  memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr)); /* Copy the collection header in front of 
+                                                  * the application payload (at the beginning of
+                                                  * the packet buffer) */
+  /* 5.4 */
+  return unicast_send(&conn->uc, &conn->parent);
 }
 /*---------------------------------------------------------------------------*/
 /* Data receive callback */
@@ -231,42 +214,20 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
     return;
   }
 
-  /* TO DO 6:
-   * 1. Extract the header;
-   * 2. On the sink, remove the header and call the application callback; 
-   *    [TBC] - Should we update any field of hdr? 
-   *          - What about packetbuf_dataptr() and packetbuf_hdrptr()? Does the 
-   *            application recv callback rely on any of them? Should we take any action?
-   * 3. On a forwarder, update the header and forward the packet to the parent (IF ANY) 
-   *    using unicast.
-   */
-
-  /* 6.1 */
   memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
-  hdr.hops = hdr.hops + 1; /* Upon receiving a data packet, the hop count stored in the collection
-                            * header needs to be always updated (both at the sink and at forwarders) */
-  
-  /* Potential debug print, to help you discover misbehaviours in your protocol: 
-   * printf("my_collect: data packet rcvd -- source: %02x:%02x, hops: %u\n",
-   *   hdr.source.u8[0], hdr.source.u8[1], hdr.hops);
-   */
 
-  /* 6.2 */
-  if (conn->is_sink) { /* The destination has been reached, no more forwarding is needed! 
-                        * Let's inform the application about the received packet. */
-    /* Remove the header, to make packetbuf_dataptr() point to the beginning of the application payload */
+  if (conn->is_sink) {
     if (packetbuf_hdrreduce(sizeof(struct collect_header)))
-      conn->callbacks->recv(&hdr.source, hdr.hops); // Call the sink recv callback function 
+      conn->callbacks->recv(&hdr.source, &hdr.parent); // Call the sink recv callback function 
     else
       printf("my_collect: ERROR, the header could not be reduced!");
   }
-  /* 6.3 */
   else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
     if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {  /* Just to be sure, and to detect potential bugs. 
                                                          * If the node is disconnected, my-collect will be 
                                                          * unable to forward the data packet upwards */
       printf("my_collect: ERROR, unable to forward data packet -- "
-        "source: %02x:%02x, hops: %u\n", hdr.source.u8[0], hdr.source.u8[1], hdr.hops);
+        "source: %02x:%02x", hdr.source.u8[0], hdr.source.u8[1]);
       return;
     }
     memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
