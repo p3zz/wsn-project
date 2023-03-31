@@ -69,15 +69,6 @@ my_collect_open(struct my_collect_conn* conn, uint16_t channels,
     ctimer_set(&conn->beacon_timer, CLOCK_SECOND, beacon_timer_cb, conn);
   }
 }
-/*---------------------------------------------------------------------------*/
-/*                              Beacon Handling                              */
-/*---------------------------------------------------------------------------*/
-/* Beacon message structure */
-struct beacon_msg {
-  uint16_t seqn;
-  uint16_t metric;
-} __attribute__((packed));
-/*---------------------------------------------------------------------------*/
 /* Send beacon using the current seqn and metric */
 void
 send_beacon(struct my_collect_conn* conn)
@@ -174,15 +165,6 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
   /* Schedule beacon propagation */
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
 }
-/*---------------------------------------------------------------------------*/
-/*                     Data Handling --- LAB 7                               */
-/*---------------------------------------------------------------------------*/
-/* Header structure for data packets */
-struct collect_header {
-  linkaddr_t source;
-  linkaddr_t parent;
-} __attribute__((packed));
-/*---------------------------------------------------------------------------*/
 /* Data Collection: send function */
 int
 my_collect_send(struct my_collect_conn *conn)

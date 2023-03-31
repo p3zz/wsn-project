@@ -37,6 +37,18 @@ void my_collect_open(
     bool is_sink,
     const struct my_collect_callbacks *callbacks);
 /*---------------------------------------------------------------------------*/
+/* Header structure for data packets */
+struct collect_header {
+  linkaddr_t source;
+  linkaddr_t parent;
+} __attribute__((packed));
+/*---------------------------------------------------------------------------*/
+/* Beacon message structure */
+struct beacon_msg {
+  uint16_t seqn;
+  uint16_t metric;
+} __attribute__((packed));
+/*---------------------------------------------------------------------------*/
 /* Send packet to the sink */
 int my_collect_send(struct my_collect_conn *c);
 /*---------------------------------------------------------------------------*/
