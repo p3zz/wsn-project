@@ -68,9 +68,7 @@ send_beacon(struct my_collect_conn* conn)
 }
 /*---------------------------------------------------------------------------*/
 /* Beacon timer callback */
-void
-beacon_timer_cb(void* ptr)
-{
+void beacon_timer_cb(void* ptr){
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr; /* [Side note] Even an implicit cast
                                                                 * struct my_collect_conn* conn = ptr;
                                                                 * works correctly */
@@ -86,9 +84,7 @@ beacon_timer_cb(void* ptr)
 }
 /*---------------------------------------------------------------------------*/
 /* Beacon receive callback */
-void
-bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
-{
+void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
   struct beacon_msg beacon;
   int16_t rssi;
 
@@ -125,9 +121,7 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
 }
 /* Data Collection: send function */
-int
-my_collect_send(struct my_collect_conn *conn)
-{
+int my_collect_send(struct my_collect_conn *conn){
   if (linkaddr_cmp(&conn->parent, &linkaddr_null)) // The node is still disconnected 
     return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
   if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2; 
@@ -140,9 +134,7 @@ my_collect_send(struct my_collect_conn *conn)
 }
 /*---------------------------------------------------------------------------*/
 /* Data receive callback */
-void
-uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
-{
+void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
   /* Get the pointer to the overall structure my_collect_conn from its field uc */
   struct my_collect_conn* conn = (struct my_collect_conn*)(((uint8_t*)uc_conn) - 
     offsetof(struct my_collect_conn, uc));
