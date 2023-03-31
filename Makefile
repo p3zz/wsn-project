@@ -16,6 +16,7 @@ CONTIKI_PROJECT = app
 # Tool to estimate node duty cycle 
 PROJECTDIRS += tools
 PROJECT_SOURCEFILES += simple-energest.c
+PROJECT_SOURCEFILES += my_collect.c
 
 all: $(CONTIKI_PROJECT)
 
