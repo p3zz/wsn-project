@@ -4,3 +4,6 @@ app.sky
 obj_sky/
 symbols.c
 symbols.h
+COOJA.log
+test_dc.log
+test.log
