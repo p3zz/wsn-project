@@ -30,21 +30,9 @@ struct unicast_callbacks uc_cb = {
   .sent = NULL
 };
 /*---------------------------------------------------------------------------*/
-void
-my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
-                bool is_sink, const struct my_collect_callbacks *callbacks)
-{
-  /* TO DO 1.1: Initialize the connection structure.
-   * 1. Set the parent address (suggestions: 
-   *                            - [logic] the node has not discovered its parent yet;
-   *                            - [implementation] check in contiki/core/net/linkaddr.h 
-   *                                               how to copy a RIME address);
-   * 2. Set the metric field (suggestion: the node is not connected yet, remember the node's
-   *    logic to accept or discard a beacon based on the metric field);
-   * 3. Set beacon_seqn (suggestion: no beacon has been received yet);
-   * 4. Check if the node is the sink;
-   * 5. Set the callbacks field.
-   */
+void my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
+                bool is_sink, const struct my_collect_callbacks *callbacks){
+
   linkaddr_copy(&conn->parent, &linkaddr_null);
   conn->metric = 65535;
   conn->beacon_seqn = 0;
@@ -55,12 +43,6 @@ my_collect_open(struct my_collect_conn* conn, uint16_t channels,
   broadcast_open(&conn->bc, channels,     &bc_cb);
   unicast_open  (&conn->uc, channels + 1, &uc_cb);
 
-  /* TO DO 1.2: SINK ONLY
-   * 1. Make the sink send beacons periodically (tip: use the ctimer in my_collect_conn).
-   *    The FIRST time make the sink TX a beacon after 1 second, after that the sink
-   *    should send beacons with a period equal to BEACON_INTERVAL.
-   * 2. Does the sink need to change/update any field in the connection structure?
-   */
   if (conn->is_sink) {
     conn->metric = 0; /* The sink hop count is (by definition) *always* equal to 0.
                        * Remember to update this field *before sending the first*
@@ -89,13 +71,6 @@ send_beacon(struct my_collect_conn* conn)
 void
 beacon_timer_cb(void* ptr)
 {
-  /* TO DO 2: Implement the beacon callback.
-   * 1. Send beacon (use send_beacon());
-   * 2. Should the sink do anything else?
-   * 3. Think who will exploit this callback (only 
-   *    the sink or also common nodes?).
-   */
-  /* --- Common nodes and sink logic --- */
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr; /* [Side note] Even an implicit cast
                                                                 * struct my_collect_conn* conn = ptr;
                                                                 * works correctly */
@@ -128,22 +103,12 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
   }
   memcpy(&beacon, packetbuf_dataptr(), sizeof(struct beacon_msg));
 
-  /* TO DO 3.0:
-   * Read the RSSI of the *last* reception
-   */
   rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
   printf("my_collect: recv beacon from %02x:%02x seqn %u metric %u rssi %d\n", 
       sender->u8[0], sender->u8[1], 
       beacon.seqn, beacon.metric, rssi);
 
-  /* TO DO 3:
-   * 1. Analyze the received beacon based on RSSI, seqn, and metric.
-   * 2. Update (if needed) the node's current routing info (parent, metric, beacon_seqn).
-   *    TIP: when you update the node's current routing info add a debug print, e.g.,
-   *         printf("my_collect: new parent %02x:%02x, my metric %d\n", 
-   *             sender->u8[0], sender->u8[1], conn->metric);
-   */
   if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn)
     return; // The beacon is either too weak or too old, ignore it
   if (beacon.seqn == conn->beacon_seqn) { // The beacon is not new, check the metric
@@ -157,12 +122,6 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
   printf("my_collect: new parent %02x:%02x, my metric %d\n", 
       sender->u8[0], sender->u8[1], conn->metric);
 
-  /* TO DO 4:
-   * IF the seqn and/or the metric have been updated, retransmit *after a small, random 
-   * delay* (BEACON_FORWARD_DELAY) the beacon to update the node neighbors about the 
-   * changes.
-   */
-  /* Schedule beacon propagation */
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
 }
 /* Data Collection: send function */
