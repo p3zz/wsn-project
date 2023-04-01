@@ -52,9 +52,7 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
   }
 }
 /* Send beacon using the current seqn and metric */
-void
-send_beacon(struct my_collect_conn* conn)
-{
+void send_beacon(struct my_collect_conn* conn){
   /* Prepare the beacon message */
   struct beacon_msg beacon = {
     .seqn = conn->beacon_seqn, .metric = conn->metric};

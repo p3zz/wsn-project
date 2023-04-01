@@ -7,6 +7,7 @@
 #include "core/net/linkaddr.h"
 #include "my_collect.h"
 #include "simple-energest.h"
+#include <stdlib.h>
 /*---------------------------------------------------------------------------*/
 #define APP_UPWARD_TRAFFIC 1
 #define APP_DOWNWARD_TRAFFIC 1
@@ -45,6 +46,8 @@ linkaddr_t dest_list[] = {
   {{0xA, 0x00}}
 };
 #endif
+struct collect_header* topology;
+void topology_allocate(struct collect_header* topology, linkaddr_t* nodes, int length);
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -94,6 +97,8 @@ PROCESS_THREAD(app_process, ev, data)
   if (linkaddr_cmp(&sink, &linkaddr_node_addr)) {
     printf("App: I am sink %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
+    int nodes_n = (int) (sizeof(dest_list) / sizeof(linkaddr_t));
+    topology_allocate(topology, dest_list, nodes_n);
 
 #if APP_DOWNWARD_TRAFFIC == 1
     /* Wait a bit longer at the beginning to gather enough topology information */
@@ -184,3 +189,32 @@ sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops)
     sr_msg.seqn, hops, ptr->metric);
 }
 /*---------------------------------------------------------------------------*/
+void topology_set(struct collect_header* topology, int length, linkaddr_t source, linkaddr_t parent){
+  int i;
+  for(i=0;i<length;i++){
+    if(linkaddr_cmp(&topology[i].source, &source)){
+      topology[i].parent = parent;
+      return;
+    }
+  }
+}
+
+linkaddr_t topology_get(struct collect_header* topology, int length, linkaddr_t source){
+  int i;
+  for(i=0;i<length;i++){
+    if(linkaddr_cmp(&topology[i].source, &source)){
+      return topology[i].parent;
+    }
+  }
+  return linkaddr_null;
+}
+
+void topology_allocate(struct collect_header* topology, linkaddr_t* nodes, int length){
+  topology = (struct collect_header*) malloc(length * sizeof(struct collect_header));
+  int i;
+  for(i=0;i<length;i++){
+    topology[i].source = nodes[i];
+    topology[i].parent = linkaddr_null;
+    printf("allocate: [source: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1]);
+  }
+}
