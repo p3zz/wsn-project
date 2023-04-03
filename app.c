@@ -46,8 +46,11 @@ linkaddr_t dest_list[] = {
   {{0xA, 0x00}}
 };
 #endif
-struct collect_header* topology;
-void topology_allocate(struct collect_header* topology, linkaddr_t* nodes, int length);
+struct collect_header* topology = NULL;
+void topology_allocate(linkaddr_t* nodes, int length);
+int topology_set(linkaddr_t node, linkaddr_t parent);
+linkaddr_t topology_get(linkaddr_t node);
+int topology_size();
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -98,7 +101,7 @@ PROCESS_THREAD(app_process, ev, data)
     printf("App: I am sink %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
     int nodes_n = (int) (sizeof(dest_list) / sizeof(linkaddr_t));
-    topology_allocate(topology, dest_list, nodes_n);
+    topology_allocate(dest_list, nodes_n);
 
 #if APP_DOWNWARD_TRAFFIC == 1
     /* Wait a bit longer at the beginning to gather enough topology information */
@@ -174,6 +177,8 @@ static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent) {
   memcpy(&msg, packetbuf_dataptr(), sizeof(msg));
   printf("App: Recv from %02x:%02x seqn %u parent %02x:%02x\n",
     originator->u8[0], originator->u8[1], msg.seqn, parent->u8[0], parent->u8[1]);
+  topology_set(*originator, *parent);
+  printf("topology entry: [node: %02x:%02x, [parent: %02x:%02x]\n", originator->u8[0], originator->u8[1], parent->u8[0], parent->u8[1]);
 }
 /*---------------------------------------------------------------------------*/
 static void
@@ -189,32 +194,40 @@ sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops)
     sr_msg.seqn, hops, ptr->metric);
 }
 /*---------------------------------------------------------------------------*/
-void topology_set(struct collect_header* topology, int length, linkaddr_t source, linkaddr_t parent){
+int topology_set(linkaddr_t node, linkaddr_t parent){
+  if(topology == NULL) return -1;
   int i;
-  for(i=0;i<length;i++){
-    if(linkaddr_cmp(&topology[i].source, &source)){
+  for(i=0;i<topology_size();i++){
+    if(linkaddr_cmp(&topology[i].source, &node)){
       topology[i].parent = parent;
-      return;
+      return 0;
     }
   }
+  return 0;
 }
 
-linkaddr_t topology_get(struct collect_header* topology, int length, linkaddr_t source){
+linkaddr_t topology_get(linkaddr_t node){
+  if(topology == NULL) return linkaddr_null;
   int i;
-  for(i=0;i<length;i++){
-    if(linkaddr_cmp(&topology[i].source, &source)){
+  for(i=0;i<topology_size();i++){
+    if(linkaddr_cmp(&topology[i].source, &node)){
       return topology[i].parent;
     }
   }
   return linkaddr_null;
 }
 
-void topology_allocate(struct collect_header* topology, linkaddr_t* nodes, int length){
+void topology_allocate(linkaddr_t* nodes, int length){
   topology = (struct collect_header*) malloc(length * sizeof(struct collect_header));
   int i;
   for(i=0;i<length;i++){
     topology[i].source = nodes[i];
     topology[i].parent = linkaddr_null;
-    printf("allocate: [source: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1]);
+    printf("allocate: [node: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1]);
   }
+}
+
+int topology_size(){
+  if(topology == NULL) return 0;
+  return (int)(sizeof(topology) / sizeof(struct collect_header));
 }
