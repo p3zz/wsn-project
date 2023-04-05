@@ -51,6 +51,8 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
     ctimer_set(&conn->beacon_timer, CLOCK_SECOND, beacon_timer_cb, conn);
   }
 }
+
+
 /* Send beacon using the current seqn and metric */
 void send_beacon(struct my_collect_conn* conn){
   /* Prepare the beacon message */
@@ -60,7 +62,7 @@ void send_beacon(struct my_collect_conn* conn){
   /* Send the beacon message in broadcast */
   packetbuf_clear();
   packetbuf_copyfrom(&beacon, sizeof(beacon));
-  printf("my_collect: sending beacon: seqn %d metric %d\n",
+  printf("[BEACON]: send seqn %d metric %d\n",
     conn->beacon_seqn, conn->metric);
   broadcast_send(&conn->bc);
 }
@@ -92,42 +94,40 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
 
   /* Check if the received broadcast packet looks legitimate */
   if (packetbuf_datalen() != sizeof(struct beacon_msg)) {
-    printf("my_collect: broadcast of wrong size\n");
+    printf("[BEACON]: broadcast of wrong size\n");
     return;
   }
   memcpy(&beacon, packetbuf_dataptr(), sizeof(struct beacon_msg));
 
   rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
-  printf("my_collect: recv beacon from %02x:%02x seqn %u metric %u rssi %d\n", 
+  printf("[BEACON]: recv from %02x:%02x seqn %u metric %u rssi %d\n", 
       sender->u8[0], sender->u8[1], 
       beacon.seqn, beacon.metric, rssi);
 
-  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn)
-    return; // The beacon is either too weak or too old, ignore it
-  if (beacon.seqn == conn->beacon_seqn) { // The beacon is not new, check the metric
-    if (beacon.metric+1 >= conn->metric)
-      return; // Worse or equal than what we have, ignore it
-  }
+  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; // The beacon is either too weak or too old, ignore it
+  if (beacon.seqn == conn->beacon_seqn && beacon.metric+1 >= conn->metric) return; // The beacon is not new, check the metric
   /* Otherwise, memorize the new parent, the metric, and the seqn */
   linkaddr_copy(&conn->parent, sender);
   conn->metric = beacon.metric + 1;
   conn->beacon_seqn = beacon.seqn;
-  printf("my_collect: new parent %02x:%02x, my metric %d\n", 
+  printf("[BEACON]: new parent %02x:%02x, my metric %d\n", 
       sender->u8[0], sender->u8[1], conn->metric);
 
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
 }
+
+
 /* Data Collection: send function */
 int my_collect_send(struct my_collect_conn *conn){
-  if (linkaddr_cmp(&conn->parent, &linkaddr_null)) // The node is still disconnected 
-    return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
+  if (linkaddr_cmp(&conn->parent, &linkaddr_null)) return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
   if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2; 
   struct collect_header hdr = {.source=linkaddr_node_addr, .parent=conn->parent}; // Prepare the collection header
   memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr)); /* Copy the collection header in front of 
                                                   * the application payload (at the beginning of
                                                   * the packet buffer) */
   /* 5.4 */
+  printf("[DATA]: send source: %02x:%02x, parent: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1], hdr.parent.u8[0], hdr.parent.u8[1]); 
   return unicast_send(&conn->uc, &conn->parent);
 }
 /*---------------------------------------------------------------------------*/
