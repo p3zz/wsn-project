@@ -147,7 +147,7 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     // retrieve the route length (on the top of the header), then remove it
     linkaddr_t hops;
     memcpy(&hops, packetbuf_dataptr(), sizeof(hops));
-    printf("hops: %d\n", hops);
+    printf("hops: %d\n", hops.u8[0]);
     if (!packetbuf_hdrreduce(sizeof(hops))) return;
 
     // retrieve the next node to hop to, but we don't remove it. It will be overwritten by the route length later
