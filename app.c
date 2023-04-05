@@ -205,10 +205,11 @@ static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
 }
 /*---------------------------------------------------------------------------*/
 
+// TODO add routing loops control
 int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   linkaddr_t next = *dest;
   linkaddr_t parent = topology_get(next);
-  int hops = 0;
+  uint8_t hops = 0;
 
   // add checkpoint (null address) that represents the end of the route of the header
   if (!packetbuf_hdralloc(sizeof(linkaddr_t))) return -2;
@@ -216,9 +217,19 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
 
   while(hops != topology_size){
     if(linkaddr_cmp(&parent, &linkaddr_null)) return -3;
-    if(linkaddr_cmp(&parent, &sink)) return unicast_send(&conn->uc, &next);
-    if (!packetbuf_hdralloc(sizeof(linkaddr_t))) return -2;
-    memcpy(packetbuf_hdrptr(), &next, sizeof(linkaddr_t));
+    hops++;
+    // if the parent is a sink, add the route length to the header, then unicast the packet
+    if(linkaddr_cmp(&parent, &sink)){
+      // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
+      linkaddr_t h = {{hops, 0x00}};
+      if(!packetbuf_hdralloc(sizeof(h))) return -2;
+      memcpy(packetbuf_hdrptr(), &h, sizeof(h));
+      printf("Route computed: %d hops\n", h.u8[0]);
+      return unicast_send(&conn->uc, &next);
+    }
+    // otherwise, add the node to the route and compute the next parent
+    if(!packetbuf_hdralloc(sizeof(next))) return -2;
+    memcpy(packetbuf_hdrptr(), &next, sizeof(next));
     next = parent;
     parent = topology_get(next);
   }
