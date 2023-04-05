@@ -105,8 +105,12 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
       sender->u8[0], sender->u8[1], 
       beacon.seqn, beacon.metric, rssi);
 
-  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; // The beacon is either too weak or too old, ignore it
-  if (beacon.seqn == conn->beacon_seqn && beacon.metric+1 >= conn->metric) return; // The beacon is not new, check the metric
+  // The beacon is either too weak or too old, ignore it
+  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; 
+  if (beacon.seqn == conn->beacon_seqn){
+    // The beacon is not new and the metric is higher than the previous, ignore it
+    if(beacon.metric+1 >= conn->metric) return; 
+  }
   /* Otherwise, memorize the new parent, the metric, and the seqn */
   linkaddr_copy(&conn->parent, sender);
   conn->metric = beacon.metric + 1;
@@ -137,8 +141,6 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
   struct my_collect_conn* conn = (struct my_collect_conn*)(((uint8_t*)uc_conn) - 
     offsetof(struct my_collect_conn, uc));
 
-  struct collect_header hdr;
-
   // if the data comes from a parent, it must be downward data 
   if (linkaddr_cmp(from, &conn->parent)) {
     linkaddr_t* next = NULL;
@@ -154,9 +156,11 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     return;
   }
 
-  printf("[DATA]: recv from: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1]);
+  struct collect_header hdr;
 
   memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
+
+  printf("[DATA]: recv from: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1]);
 
   if (conn->is_sink) {
     if (packetbuf_hdrreduce(sizeof(struct collect_header)))
