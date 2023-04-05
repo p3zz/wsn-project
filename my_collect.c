@@ -143,16 +143,30 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
 
   // if the data comes from a parent, it must be downward data 
   if (linkaddr_cmp(from, &conn->parent)) {
-    linkaddr_t* next = NULL;
-    memcpy(next, packetbuf_dataptr(), sizeof(linkaddr_t));
-    if (!packetbuf_hdrreduce(sizeof(linkaddr_t))) return;
-    if (linkaddr_cmp(next, &linkaddr_null)){
-      // FIXME replace hops with real value
-      conn->callbacks->sr_recv(conn, 1);
+
+    // retrieve the route length (on the top of the header), then remove it
+    linkaddr_t hops;
+    memcpy(&hops, packetbuf_dataptr(), sizeof(hops));
+    printf("hops: %d\n", hops);
+    if (!packetbuf_hdrreduce(sizeof(hops))) return;
+
+    // retrieve the next node to hop to, but we don't remove it. It will be overwritten by the route length later
+    linkaddr_t next;
+    memcpy(&next, packetbuf_dataptr(), sizeof(next));
+
+    printf("sr forward to %02x:%02x\n", next.u8[0], next.u8[1]);
+
+    // check if we have reached the destination
+    if (linkaddr_cmp(&next, &linkaddr_null)){
+      if (!packetbuf_hdrreduce(sizeof(next))) return;
+      conn->callbacks->sr_recv(conn, hops.u8[0]);
       return;
     }
-    printf("sr forward to %02x:%02x\n", next->u8[0], next->u8[1]);
-    unicast_send(uc_conn, next);
+
+    // overwrite the current node with the route length
+    memcpy(packetbuf_dataptr(), &hops, sizeof(linkaddr_t));
+
+    unicast_send(uc_conn, &next);
     return;
   }
 
