@@ -52,7 +52,6 @@ void topology_allocate();
 int topology_set(linkaddr_t node, linkaddr_t parent);
 linkaddr_t topology_get(linkaddr_t node);
 void topology_print();
-int source_send(linkaddr_t dest);
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);

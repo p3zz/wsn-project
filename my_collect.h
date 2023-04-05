@@ -54,6 +54,4 @@ int my_collect_send(struct my_collect_conn *c);
 /*---------------------------------------------------------------------------*/
 int sr_send(struct my_collect_conn* conn, linkaddr_t* dest);
 /*---------------------------------------------------------------------------*/
-int sr_forward(struct unicast_conn* uc);
-/*---------------------------------------------------------------------------*/
 #endif /* __MY_COLLECT_H__ */
