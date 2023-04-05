@@ -139,11 +139,22 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
 
   struct collect_header hdr;
 
-  /* Check if the received unicast message looks legitimate */
-  if (packetbuf_datalen() < sizeof(struct collect_header)) {
-    printf("my_collect: too short unicast packet %d\n", packetbuf_datalen());
+  // if the data comes from a parent, it must be downward data 
+  if (linkaddr_cmp(from, &conn->parent)) {
+    linkaddr_t* next = NULL;
+    memcpy(next, packetbuf_dataptr(), sizeof(linkaddr_t));
+    if (!packetbuf_hdrreduce(sizeof(linkaddr_t))) return;
+    if (linkaddr_cmp(next, &linkaddr_null)){
+      // FIXME replace hops with real value
+      conn->callbacks->sr_recv(conn, 1);
+      return;
+    }
+    printf("sr forward to %02x:%02x\n", next->u8[0], next->u8[1]);
+    unicast_send(uc_conn, next);
     return;
   }
+
+  printf("[DATA]: recv from: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1]);
 
   memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
 
@@ -151,21 +162,19 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     if (packetbuf_hdrreduce(sizeof(struct collect_header)))
       conn->callbacks->recv(&hdr.source, &hdr.parent); // Call the sink recv callback function 
     else
-      printf("my_collect: ERROR, the header could not be reduced!");
+      printf("[DATA]: ERROR, the header could not be reduced!");
   }
   else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
     if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {  /* Just to be sure, and to detect potential bugs. 
                                                          * If the node is disconnected, my-collect will be 
                                                          * unable to forward the data packet upwards */
-      printf("my_collect: ERROR, unable to forward data packet -- "
+      printf("[DATA]: ERROR, unable to forward data packet -- "
         "source: %02x:%02x", hdr.source.u8[0], hdr.source.u8[1]);
       return;
     }
     memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
     unicast_send(&conn->uc, &conn->parent); // Send the updated message to the node's parent in unicast
+    printf("[DATA]: send source: %02x:%02x, parent: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1], hdr.parent.u8[0], hdr.parent.u8[1]); 
   }
 }
 /*---------------------------------------------------------------------------*/
-int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
-  return 1;  
-}
