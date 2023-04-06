@@ -52,6 +52,7 @@ void topology_allocate();
 int topology_set(linkaddr_t node, linkaddr_t parent);
 linkaddr_t topology_get(linkaddr_t node);
 void topology_print();
+bool contains(linkaddr_t* route, linkaddr_t addr);
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -215,7 +216,17 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   memcpy(packetbuf_hdrptr(), &linkaddr_null, sizeof(linkaddr_t));
 
   while(hops != topology_size){
+
     if(linkaddr_cmp(&parent, &linkaddr_null)) return -3;
+
+    // routing loop check
+    // retrieve the route saved inside the header
+    linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
+    // if the parent is found inside the route, there's a loop
+    if(contains(route, parent)){
+      return -4;
+    };
+
     hops++;
     // if the parent is a sink, add the route length to the header, then unicast the packet
     if(linkaddr_cmp(&parent, &sink)){
@@ -233,6 +244,17 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
     parent = topology_get(next);
   }
   return -1;
+}
+
+bool contains(linkaddr_t* route, linkaddr_t addr){
+  int i = 0;
+  printf("Loop check\n");
+  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
+    if(linkaddr_cmp(&route[i], &addr)) return true;
+    printf("checking %02x:%02x against %02x:%02x\n", route[i].u8[0], route[i].u8[1], addr.u8[0], addr.u8[1]);
+    i++;
+  }
+  return false;
 }
 
 /*TOPOLOGY---------------------------------------------------------------------------*/
