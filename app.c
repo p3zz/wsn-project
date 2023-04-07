@@ -56,6 +56,8 @@ linkaddr_t topology_get(linkaddr_t node);
 void topology_print();
 bool contains(linkaddr_t* route, linkaddr_t addr);
 bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
+bool packetbuf_hdrcontains(linkaddr_t addr);
+void packetbuf_hdrprint();
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -220,13 +222,12 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
 
   while(hops != topology_size){
 
+    // if the node doesn't have a parent, exit
     if(linkaddr_cmp(&parent, &linkaddr_null)) return -3;
 
-    // routing loop check
-    // retrieve the route saved inside the header
-    linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
+    // ROUTING LOOP CHECK
     // if the parent is found inside the route, there's a loop
-    if(contains(route, parent)){
+    if(packetbuf_hdrcontains(parent)){
       return -4;
     };
 
@@ -236,7 +237,7 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
       // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
       linkaddr_t h = {{hops, 0x00}};
       if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
-      printf("Route computed: %d hops\n", h.u8[0]);
+      packetbuf_hdrprint();
       return unicast_send(&conn->uc, &next);
     }
     // otherwise, add the node to the route and compute the next parent
@@ -254,15 +255,28 @@ bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
   return true;
 }
 
-bool contains(linkaddr_t* route, linkaddr_t addr){
+bool packetbuf_hdrcontains(linkaddr_t addr){
+  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
   int i = 0;
   printf("Loop check\n");
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
     if(linkaddr_cmp(&route[i], &addr)) return true;
-    printf("checking %02x:%02x against %02x:%02x\n", route[i].u8[0], route[i].u8[1], addr.u8[0], addr.u8[1]);
     i++;
   }
   return false;
+}
+
+void packetbuf_hdrprint(){
+  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
+  int i = 0;
+  linkaddr_t hops = route[i];
+  i++;
+  printf("Route length: %d, nodes: [", hops.u8[0]);
+  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
+    printf("%02x:%02x -> ", route[i].u8[0], route[i].u8[1]);
+    i++;
+  }
+  printf("]\n");
 }
 
 /*TOPOLOGY---------------------------------------------------------------------------*/
