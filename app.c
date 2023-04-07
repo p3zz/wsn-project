@@ -17,6 +17,8 @@
 #define UPWARD_MSG_DELAY (30 * CLOCK_SECOND)
 #define DOWNWARD_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
+#define MAX_PATH_LENGTH 10
+#define MAX_NODES 40
 /*---------------------------------------------------------------------------*/
 #ifndef CONTIKI_TARGET_SKY
 linkaddr_t sink = {{0xF7, 0x9C}}; /* Firefly (testbed): node 1 will be our sink */
@@ -220,16 +222,14 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   // add checkpoint (null address) that represents the end of the route of the header
   if (!packetbuf_hdrcopy_linkaddr(linkaddr_null)) return -2;
 
-  while(hops != topology_size){
+  while(hops <= MAX_PATH_LENGTH){
 
     // if the node doesn't have a parent, exit
     if(linkaddr_cmp(&parent, &linkaddr_null)) return -3;
 
     // ROUTING LOOP CHECK
     // if the parent is found inside the route, there's a loop
-    if(packetbuf_hdrcontains(parent)){
-      return -4;
-    };
+    if(packetbuf_hdrcontains(parent)) return -4;
 
     hops++;
     // if the parent is a sink, add the route length to the header, then unicast the packet
