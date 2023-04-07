@@ -125,13 +125,12 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
 /* Data Collection: send function */
 int my_collect_send(struct my_collect_conn *conn){
   if (linkaddr_cmp(&conn->parent, &linkaddr_null)) return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
-  if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2; 
-  struct collect_header hdr = {.source=linkaddr_node_addr, .parent=conn->parent}; // Prepare the collection header
+  if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2;
+  struct topology_report report = {.source=linkaddr_node_addr, .parent=conn->parent};
+  struct collect_header hdr = {.report = report, .hops = 0}; // Prepare the collection header
   memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr)); /* Copy the collection header in front of 
                                                   * the application payload (at the beginning of
                                                   * the packet buffer) */
-  /* 5.4 */
-  printf("[DATA]: send source: %02x:%02x, parent: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1], hdr.parent.u8[0], hdr.parent.u8[1]); 
   return unicast_send(&conn->uc, &conn->parent);
 }
 /*---------------------------------------------------------------------------*/
@@ -174,11 +173,11 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
 
   memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
 
-  printf("[DATA]: recv from: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1]);
+  hdr.hops = hdr.hops + 1;
 
   if (conn->is_sink) {
-    if (packetbuf_hdrreduce(sizeof(struct collect_header)))
-      conn->callbacks->recv(&hdr.source, &hdr.parent); // Call the sink recv callback function 
+    if (packetbuf_hdrreduce(sizeof(hdr)))
+      conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function 
     else
       printf("[DATA]: ERROR, the header could not be reduced!");
   }
@@ -187,12 +186,11 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
                                                          * If the node is disconnected, my-collect will be 
                                                          * unable to forward the data packet upwards */
       printf("[DATA]: ERROR, unable to forward data packet -- "
-        "source: %02x:%02x", hdr.source.u8[0], hdr.source.u8[1]);
+        "source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
       return;
     }
     memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
     unicast_send(&conn->uc, &conn->parent); // Send the updated message to the node's parent in unicast
-    printf("[DATA]: send source: %02x:%02x, parent: %02x:%02x\n", hdr.source.u8[0], hdr.source.u8[1], hdr.parent.u8[0], hdr.parent.u8[1]); 
   }
 }
 /*---------------------------------------------------------------------------*/

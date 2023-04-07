@@ -21,7 +21,7 @@ struct my_collect_conn {
 /*---------------------------------------------------------------------------*/
 /* Callback structure */
 struct my_collect_callbacks {
-  void (*recv)(const linkaddr_t *originator, const linkaddr_t *parent);
+  void (*recv)(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops);
   void (*sr_recv)(struct my_collect_conn *ptr, uint8_t hops);
 };
 /*---------------------------------------------------------------------------*/
@@ -37,10 +37,16 @@ void my_collect_open(
     bool is_sink,
     const struct my_collect_callbacks *callbacks);
 /*---------------------------------------------------------------------------*/
-/* Header structure for data packets */
-struct collect_header {
+/* Topology report*/
+struct topology_report {
   linkaddr_t source;
   linkaddr_t parent;
+} __attribute__((packed));
+/*---------------------------------------------------------------------------*/
+/* Header structure for data packets */
+struct collect_header {
+  struct topology_report report; 
+  uint8_t hops;
 } __attribute__((packed));
 /*---------------------------------------------------------------------------*/
 /* Beacon message structure */

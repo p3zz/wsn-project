@@ -50,7 +50,7 @@ linkaddr_t dest_list[] = {
   {{0xA, 0x00}}
 };
 #endif
-struct collect_header* topology = NULL;
+struct topology_report* topology = NULL;
 int topology_size = 0;
 void topology_allocate();
 int topology_set(linkaddr_t node, linkaddr_t parent);
@@ -72,7 +72,7 @@ __attribute__((packed))
 test_msg_t;
 /*---------------------------------------------------------------------------*/
 static struct my_collect_conn my_collect;
-static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent);
+static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops);
 /*
  * Source Routing Callback
  * This function is called upon receiving a message from the sink in a node.
@@ -178,7 +178,7 @@ PROCESS_THREAD(app_process, ev, data)
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
-static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent) {
+static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops) {
   test_msg_t msg;
   if (packetbuf_datalen() != sizeof(msg)) {
     printf("App: wrong length: %d\n", packetbuf_datalen());
@@ -305,7 +305,7 @@ linkaddr_t topology_get(linkaddr_t node){
 }
 
 void topology_allocate(){
-  topology = (struct collect_header*) malloc(topology_size * sizeof(struct collect_header));
+  topology = (struct topology_report*) malloc(topology_size * sizeof(struct topology_report));
   int i;
   for(i=0;i<topology_size;i++){
     linkaddr_copy(&topology[i].source, &dest_list[i]);
