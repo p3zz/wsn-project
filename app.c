@@ -14,6 +14,8 @@
 /*---------------------------------------------------------------------------*/
 #define MSG_PERIOD (30 * CLOCK_SECOND)
 #define SR_MSG_PERIOD (10 * CLOCK_SECOND)
+#define UPWARD_MSG_DELAY (30 * CLOCK_SECOND)
+#define DOWNWARD_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
 /*---------------------------------------------------------------------------*/
 #ifndef CONTIKI_TARGET_SKY
@@ -53,6 +55,7 @@ int topology_set(linkaddr_t node, linkaddr_t parent);
 linkaddr_t topology_get(linkaddr_t node);
 void topology_print();
 bool contains(linkaddr_t* route, linkaddr_t addr);
+bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -99,6 +102,7 @@ PROCESS_THREAD(app_process, ev, data)
   /* Start energest to estimate node duty cycle */
   simple_energest_start();
 
+  // ------------------SINK--------------------
   if (linkaddr_cmp(&sink, &linkaddr_node_addr)) {
     printf("App: I am sink %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
@@ -106,8 +110,7 @@ PROCESS_THREAD(app_process, ev, data)
     topology_allocate();
 
 #if APP_DOWNWARD_TRAFFIC == 1
-    /* Wait a bit longer at the beginning to gather enough topology information */
-    etimer_set(&periodic, 75 * CLOCK_SECOND);
+    etimer_set(&periodic, DOWNWARD_MSG_DELAY);
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
@@ -142,14 +145,15 @@ PROCESS_THREAD(app_process, ev, data)
         dest_idx = 0;
       }
     }
-#endif /* APP_DOWNWARD_TRAFFIC == 1 */
+#endif
   }
+  // ------------------NORMAL NODE--------------------
   else {
     printf("App: I am normal node %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, false, &node_cb);
     
 #if APP_UPWARD_TRAFFIC == 1
-    etimer_set(&periodic, 30 * CLOCK_SECOND);
+    etimer_set(&periodic, UPWARD_MSG_DELAY);
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
@@ -165,7 +169,7 @@ PROCESS_THREAD(app_process, ev, data)
       my_collect_send(&my_collect);
       msg.seqn ++;
     }
-#endif /* APP_UPWARD_TRAFFIC == 1 */
+#endif
   }
   PROCESS_END();
 }
@@ -212,8 +216,7 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   uint8_t hops = 0;
 
   // add checkpoint (null address) that represents the end of the route of the header
-  if (!packetbuf_hdralloc(sizeof(linkaddr_t))) return -2;
-  memcpy(packetbuf_hdrptr(), &linkaddr_null, sizeof(linkaddr_t));
+  if (!packetbuf_hdrcopy_linkaddr(linkaddr_null)) return -2;
 
   while(hops != topology_size){
 
@@ -232,18 +235,23 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
     if(linkaddr_cmp(&parent, &sink)){
       // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
       linkaddr_t h = {{hops, 0x00}};
-      if(!packetbuf_hdralloc(sizeof(h))) return -2;
-      memcpy(packetbuf_hdrptr(), &h, sizeof(h));
+      if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
       printf("Route computed: %d hops\n", h.u8[0]);
       return unicast_send(&conn->uc, &next);
     }
     // otherwise, add the node to the route and compute the next parent
-    if(!packetbuf_hdralloc(sizeof(next))) return -2;
-    memcpy(packetbuf_hdrptr(), &next, sizeof(next));
+    if (!packetbuf_hdrcopy_linkaddr(next)) return -2;
     next = parent;
     parent = topology_get(next);
   }
   return -1;
+}
+
+// allocates the space for an addr, then copy it inside the packetbuf header
+bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
+  if (!packetbuf_hdralloc(sizeof(addr))) return false;
+  memcpy(packetbuf_hdrptr(), &addr, sizeof(addr));
+  return true;
 }
 
 bool contains(linkaddr_t* route, linkaddr_t addr){
