@@ -7,7 +7,6 @@
 #include "core/net/linkaddr.h"
 #include "my_collect.h"
 #include "simple-energest.h"
-#include <stdlib.h>
 /*---------------------------------------------------------------------------*/
 #define APP_UPWARD_TRAFFIC 1
 #define APP_DOWNWARD_TRAFFIC 1
@@ -17,8 +16,6 @@
 #define UPWARD_MSG_DELAY (30 * CLOCK_SECOND)
 #define DOWNWARD_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
-#define MAX_PATH_LENGTH 10
-#define MAX_NODES 40
 /*---------------------------------------------------------------------------*/
 #ifndef CONTIKI_TARGET_SKY
 linkaddr_t sink = {{0xF7, 0x9C}}; /* Firefly (testbed): node 1 will be our sink */
@@ -50,16 +47,6 @@ linkaddr_t dest_list[] = {
   {{0xA, 0x00}}
 };
 #endif
-struct topology_report* topology = NULL;
-int topology_size = 0;
-void topology_allocate();
-int topology_set(linkaddr_t node, linkaddr_t parent);
-linkaddr_t topology_get(linkaddr_t node);
-void topology_print();
-bool contains(linkaddr_t* route, linkaddr_t addr);
-bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
-bool packetbuf_hdrcontains(linkaddr_t addr);
-void packetbuf_hdrprint();
 /*---------------------------------------------------------------------------*/
 PROCESS(app_process, "App process");
 AUTOSTART_PROCESSES(&app_process);
@@ -112,8 +99,6 @@ PROCESS_THREAD(app_process, ev, data)
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
 
 #if APP_DOWNWARD_TRAFFIC == 1
-    topology_size = (int) (sizeof(dest_list) / sizeof(linkaddr_t));
-    topology_allocate();
 
     etimer_set(&periodic, DOWNWARD_MSG_DELAY);
     while(1) {
@@ -188,18 +173,6 @@ static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint
   memcpy(&msg, packetbuf_dataptr(), sizeof(msg));
   printf("App: Recv from %02x:%02x seqn %d hops %d\n",
     originator->u8[0], originator->u8[1], msg.seqn, hops);
-  int res = topology_set(*originator, *parent);
-  switch(res){
-    case 0:
-      // printf("topology ok\n");
-      break;
-    case -1:
-      // printf("topology does not exist\n");
-      break;
-    case -2:
-      // printf("topology source not found\n");
-      break;
-  }
 }
 /*---------------------------------------------------------------------------*/
 static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
@@ -247,79 +220,4 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
     parent = topology_get(next);
   }
   return -1;
-}
-
-// allocates the space for an addr, then copy it inside the packetbuf header
-bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
-  if (!packetbuf_hdralloc(sizeof(addr))) return false;
-  memcpy(packetbuf_hdrptr(), &addr, sizeof(addr));
-  return true;
-}
-
-bool packetbuf_hdrcontains(linkaddr_t addr){
-  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
-  int i = 0;
-  printf("Loop check\n");
-  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
-    if(linkaddr_cmp(&route[i], &addr)) return true;
-    i++;
-  }
-  return false;
-}
-
-void packetbuf_hdrprint(){
-  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
-  int i = 0;
-  linkaddr_t hops = route[i];
-  i++;
-  printf("Route length: %d, nodes: [", hops.u8[0]);
-  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
-    printf("%02x:%02x -> ", route[i].u8[0], route[i].u8[1]);
-    i++;
-  }
-  printf("]\n");
-}
-
-/*TOPOLOGY---------------------------------------------------------------------------*/
-int topology_set(linkaddr_t node, linkaddr_t parent){
-  if(topology == NULL) return -1;
-  int i;
-  for(i=0;i<topology_size;i++){
-    if(linkaddr_cmp(&topology[i].source, &node)){
-      linkaddr_copy(&topology[i].parent, &parent);
-      topology_print();
-      return 0;
-    }
-  }
-  return -2;
-}
-
-linkaddr_t topology_get(linkaddr_t node){
-  if(topology == NULL) return linkaddr_null;
-  int i;
-  for(i=0;i<topology_size;i++){
-    if(linkaddr_cmp(&topology[i].source, &node)){
-      return topology[i].parent;
-    }
-  }
-  return linkaddr_null;
-}
-
-void topology_allocate(){
-  topology = (struct topology_report*) malloc(topology_size * sizeof(struct topology_report));
-  int i;
-  for(i=0;i<topology_size;i++){
-    linkaddr_copy(&topology[i].source, &dest_list[i]);
-    linkaddr_copy(&topology[i].parent, &linkaddr_null);
-    printf("allocate: [node: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1]);
-  }
-}
-
-void topology_print(){
-  if(topology == NULL) return;
-  printf("topology: \n");
-  int i;
-  for(i=0;i<topology_size;i++){
-    printf("[node: %02x:%02x, parent: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1], topology[i].parent.u8[0], topology[i].parent.u8[1]);
-  }
 }
