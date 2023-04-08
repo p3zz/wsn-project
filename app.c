@@ -186,8 +186,6 @@ static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
     sr_msg.seqn, hops, ptr->metric);
 }
 /*---------------------------------------------------------------------------*/
-
-// TODO add routing loops control
 int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   linkaddr_t next = *dest;
   linkaddr_t parent = topology_get(next);
