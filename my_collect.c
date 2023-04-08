@@ -157,6 +157,7 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
   struct my_collect_conn* conn = (struct my_collect_conn*)(((uint8_t*)uc_conn) - 
     offsetof(struct my_collect_conn, uc));
 
+  // ---------------- DOWNWARD DATA-----------------  
   // if the data comes from a parent, it must be downward data 
   if (linkaddr_cmp(from, &conn->parent)) {
 
@@ -218,11 +219,8 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
           printf("[DATA]: ERROR, the header could not be reduced!");
       }
       else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
-        if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {  /* Just to be sure, and to detect potential bugs. 
-                                                            * If the node is disconnected, my-collect will be 
-                                                            * unable to forward the data packet upwards */
-          printf("[DATA]: ERROR, unable to forward data packet -- "
-            "source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
+        if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
+          printf("[DATA]: ERROR, unable to forward data packet -- source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
           return;
         }
         memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
