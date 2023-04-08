@@ -6,6 +6,23 @@
 #include "net/rime/rime.h"
 #include "net/netstack.h"
 #include "core/net/linkaddr.h"
+#include <stdlib.h>
+/*---------------------------------------------------------------------------*/
+#define MAX_PATH_LENGTH 10
+#define MAX_NODES 40
+#define TOPOLOGY_REPORT_PERIOD (30 * CLOCK_SECOND)
+#define TOPOLOGY_REPORT_DELAY (30 * CLOCK_SECOND)
+#define TOPOLOGY_REPORT_ENABLED 0
+#define BEACON_INTERVAL (60 * CLOCK_SECOND) 
+#define BEACON_FORWARD_DELAY (random_rand() % CLOCK_SECOND)
+#define RSSI_THRESHOLD -95
+/*---------------------------------------------------------------------------*/
+int topology_set(linkaddr_t node, linkaddr_t parent);
+linkaddr_t topology_get(linkaddr_t node);
+void topology_print();
+bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
+bool packetbuf_hdrcontains(linkaddr_t addr);
+void packetbuf_hdrprint();
 /*---------------------------------------------------------------------------*/
 /* Connection object */
 struct my_collect_conn {
@@ -17,6 +34,7 @@ struct my_collect_conn {
   uint16_t metric;
   uint16_t beacon_seqn;
   bool is_sink;
+  struct ctimer report_timer;
 };
 /*---------------------------------------------------------------------------*/
 /* Callback structure */
