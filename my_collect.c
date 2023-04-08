@@ -48,14 +48,27 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
   unicast_open  (&conn->uc, channels + 1, &uc_cb);
 
   if (conn->is_sink) {
-    conn->metric = 0; /* The sink hop count is (by definition) *always* equal to 0.
-                       * Remember to update this field *before sending the first*
-                       * beacon message in broadcast! */
-    /* Schedule the first beacon message flood */
+    conn->metric = 0;
+    topology_allocate();
     ctimer_set(&conn->beacon_timer, CLOCK_SECOND, beacon_timer_cb, conn);
   }
+#if TOPOLOGY_REPORT_ENABLED == 1
+  else{
+    ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_DELAY, report_timer_cb, conn);
+  }
+#endif
 }
 
+/* Topology report timer callback */
+void report_timer_cb(void* ptr){
+  struct my_collect_conn* conn = (struct my_collect_conn*)ptr; 
+  struct topology_report report = {.source=linkaddr_node_addr, .parent=conn->parent};
+  packetbuf_clear();
+  packetbuf_copyfrom(&report, sizeof(report));
+  unicast_send(&conn->uc, &conn->parent);
+  printf("[REPORT]: send report [node: %02x:%02x, parent: %02x:%02x]\n", report.source.u8[0], report.source.u8[1], report.parent.u8[0], report.parent.u8[1]);
+  ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
+}
 
 /* Send beacon using the current seqn and metric */
 void send_beacon(struct my_collect_conn* conn){
