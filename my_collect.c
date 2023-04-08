@@ -8,17 +8,18 @@
 #include "core/net/linkaddr.h"
 #include "my_collect.h"
 /*---------------------------------------------------------------------------*/
-#define BEACON_INTERVAL (CLOCK_SECOND * 60) /* [Lab 7] Try to change this period to  
-                                             * analyse how it affects the radio-on time
-                                             * (energy consumption) of you solution */ 
-#define BEACON_FORWARD_DELAY (random_rand() % CLOCK_SECOND)
 /*---------------------------------------------------------------------------*/
-#define RSSI_THRESHOLD -95
-/*---------------------------------------------------------------------------*/
-/* Callback function declarations */
 void bc_recv(struct broadcast_conn *conn, const linkaddr_t *sender);
 void uc_recv(struct unicast_conn *c, const linkaddr_t *from);
 void beacon_timer_cb(void* ptr);
+void report_timer_cb(void* ptr);
+void topology_allocate();
+int topology_set(linkaddr_t node, linkaddr_t parent);
+linkaddr_t topology_get(linkaddr_t node);
+void topology_print();
+bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
+bool packetbuf_hdrcontains(linkaddr_t addr);
+void packetbuf_hdrprint();
 /*---------------------------------------------------------------------------*/
 /* Rime Callback structures */
 struct broadcast_callbacks bc_cb = {
@@ -29,6 +30,9 @@ struct unicast_callbacks uc_cb = {
   .recv = uc_recv,
   .sent = NULL
 };
+/*---------------------------------------------------------------------------*/
+struct topology_report* topology = NULL;
+int topology_size = 0;
 /*---------------------------------------------------------------------------*/
 void my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
                 bool is_sink, const struct my_collect_callbacks *callbacks){
@@ -166,31 +170,132 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     memcpy(packetbuf_dataptr(), &hops, sizeof(linkaddr_t));
 
     unicast_send(uc_conn, &next);
-    return;
   }
+  // ---------------- UPWARD DATA-----------------  
+  else{
+    if(packetbuf_datalen() == sizeof(struct topology_report)){
+      struct topology_report report;
+      memcpy(&report, packetbuf_dataptr(), sizeof(report));
+      // if the current node is a sink, call the recv callback
+      // FIXME we need to move the topology set here instead of sending a fake hops counter
+      if (conn->is_sink) {
+        topology_set(report.source, report.parent);
+      }
+      else{
+        if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
+          printf("[DATA]: ERROR, unable to forward data packet");
+          return;
+        }
+        // else forward the packet to the parent
+        unicast_send(&conn->uc, &conn->parent);
+      }
+    } else{
+      struct collect_header hdr;
 
-  struct collect_header hdr;
+      memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
 
-  memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
+      hdr.hops = hdr.hops + 1;
 
-  hdr.hops = hdr.hops + 1;
-
-  if (conn->is_sink) {
-    if (packetbuf_hdrreduce(sizeof(hdr)))
-      conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function 
-    else
-      printf("[DATA]: ERROR, the header could not be reduced!");
-  }
-  else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
-    if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {  /* Just to be sure, and to detect potential bugs. 
-                                                         * If the node is disconnected, my-collect will be 
-                                                         * unable to forward the data packet upwards */
-      printf("[DATA]: ERROR, unable to forward data packet -- "
-        "source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
-      return;
+      if (conn->is_sink) {
+        if (packetbuf_hdrreduce(sizeof(hdr))){
+          topology_set(hdr.report.source, hdr.report.parent);
+          conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function
+        }
+        else
+          printf("[DATA]: ERROR, the header could not be reduced!");
+      }
+      else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
+        if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {  /* Just to be sure, and to detect potential bugs. 
+                                                            * If the node is disconnected, my-collect will be 
+                                                            * unable to forward the data packet upwards */
+          printf("[DATA]: ERROR, unable to forward data packet -- "
+            "source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
+          return;
+        }
+        memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
+        unicast_send(&conn->uc, &conn->parent); // Send the updated message to the node's parent in unicast
+      }
     }
-    memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
-    unicast_send(&conn->uc, &conn->parent); // Send the updated message to the node's parent in unicast
   }
 }
 /*---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------*/
+
+// allocates the space for an addr, then copy it inside the packetbuf header
+bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
+  if (!packetbuf_hdralloc(sizeof(addr))) return false;
+  memcpy(packetbuf_hdrptr(), &addr, sizeof(addr));
+  return true;
+}
+
+bool packetbuf_hdrcontains(linkaddr_t addr){
+  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
+  int i = 0;
+  printf("Loop check\n");
+  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
+    if(linkaddr_cmp(&route[i], &addr)) return true;
+    i++;
+  }
+  return false;
+}
+
+void packetbuf_hdrprint(){
+  linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
+  int i = 0;
+  linkaddr_t hops = route[i];
+  i++;
+  printf("Route length: %d, nodes: [", hops.u8[0]);
+  while(!linkaddr_cmp(&route[i], &linkaddr_null)){
+    printf("%02x:%02x -> ", route[i].u8[0], route[i].u8[1]);
+    i++;
+  }
+  printf("]\n");
+}
+
+/*TOPOLOGY---------------------------------------------------------------------------*/
+int topology_set(linkaddr_t node, linkaddr_t parent){
+  if(topology == NULL) return -1;
+  int i;
+  // search for node in topology
+  for(i=0;i<topology_size;i++){
+    // if found, update the parent
+    if(linkaddr_cmp(&topology[i].source, &node)){
+      linkaddr_copy(&topology[i].parent, &parent);
+      topology_print();
+      return 0;
+    }
+  }
+  // otherwise, if the space is available, add a new entry and increment the topology size
+  if(topology_size == MAX_NODES) return -2;
+  linkaddr_copy(&topology[topology_size].source, &node);
+  linkaddr_copy(&topology[topology_size].parent, &parent);
+  topology_size++;
+  return 0;
+}
+
+linkaddr_t topology_get(linkaddr_t node){
+  if(topology == NULL) return linkaddr_null;
+  int i;
+  for(i=0;i<topology_size;i++){
+    if(linkaddr_cmp(&topology[i].source, &node)){
+      return topology[i].parent;
+    }
+  }
+  return linkaddr_null;
+}
+
+void topology_allocate(){
+  if(topology != NULL) return;
+  topology = (struct topology_report*) malloc(MAX_NODES * sizeof(struct topology_report));
+  topology_size = 0;
+}
+
+void topology_print(){
+  if(topology == NULL) return;
+  printf("topology: \n");
+  int i;
+  for(i=0;i<topology_size;i++){
+    printf("[node: %02x:%02x, parent: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1], topology[i].parent.u8[0], topology[i].parent.u8[1]);
+  }
+}
