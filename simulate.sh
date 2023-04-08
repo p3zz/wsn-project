@@ -22,6 +22,7 @@ wait
 
 echo UDGM Simulation terminated && \
 mv ${ROOT_DIR}/test*.log ${TEST_UDGM_DIR} &&
+python3 ${ROOT_DIR}/parse-stats.py ${TEST_UDGM_DIR}/test.log > ${TEST_UDGM_DIR}/result.txt
 
 # MRM Simulation
 mkdir ${TEST_MRM_DIR} &&
@@ -32,5 +33,6 @@ wait
 
 echo MRM Simulation terminated && \
 mv ${ROOT_DIR}/test*.log ${TEST_MRM_DIR} &&
+python3 ${ROOT_DIR}/parse-stats.py ${TEST_MRM_DIR}/test.log > ${TEST_MRM_DIR}/result.txt
 
 echo results available at ${TEST_DIR}
