@@ -110,10 +110,11 @@ PROCESS_THREAD(app_process, ev, data)
   if (linkaddr_cmp(&sink, &linkaddr_node_addr)) {
     printf("App: I am sink %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
+
+#if APP_DOWNWARD_TRAFFIC == 1
     topology_size = (int) (sizeof(dest_list) / sizeof(linkaddr_t));
     topology_allocate();
 
-#if APP_DOWNWARD_TRAFFIC == 1
     etimer_set(&periodic, DOWNWARD_MSG_DELAY);
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
