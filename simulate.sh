@@ -1,10 +1,36 @@
 #!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
 
 ROOT_DIR=$(pwd)
-TEST_NAME="${DATE}"
-TEST_DIR="${ROOT_DIR}/test/${TEST_NAME}"
+GLOBAL_TEST_DIR="${ROOT_DIR}/test"
+
+TEST_NAME=$(date +%Y%m%d_%H%M%S)
+TEST_UDGM_NAME="UDGM"
+TEST_MRM_NAME="MRM"
+
+TEST_DIR="${GLOBAL_TEST_DIR}/${TEST_NAME}"
+TEST_UDGM_DIR="${TEST_DIR}/${TEST_UDGM_NAME}"
+TEST_MRM_DIR="${TEST_DIR}/${TEST_MRM_NAME}"
 
 mkdir ${TEST_DIR} && \
-echo ${TEST_NAME} && \
-cooja_nogui ${ROOT_DIR}/test*.csc &>/dev/null
+
+# UDGM Simulation
+mkdir ${TEST_UDGM_DIR} &&
+echo UDGM Simulation started && \
+cooja_nogui ${ROOT_DIR}/test_nogui.csc
+
+wait
+
+echo UDGM Simulation terminated && \
+mv ${ROOT_DIR}/test*.log ${TEST_UDGM_DIR} &&
+
+# MRM Simulation
+mkdir ${TEST_MRM_DIR} &&
+echo MRM Simulation started && \
+cooja_nogui ${ROOT_DIR}/test_nogui_mrm.csc
+
+wait
+
+echo MRM Simulation terminated && \
+mv ${ROOT_DIR}/test*.log ${TEST_MRM_DIR} &&
+
+echo results available at ${TEST_DIR}
