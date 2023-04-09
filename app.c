@@ -13,8 +13,8 @@
 /*---------------------------------------------------------------------------*/
 #define MSG_PERIOD (30 * CLOCK_SECOND)
 #define SR_MSG_PERIOD (10 * CLOCK_SECOND)
-#define UPWARD_MSG_DELAY (30 * CLOCK_SECOND)
-#define DOWNWARD_MSG_DELAY (75 * CLOCK_SECOND)
+#define MSG_DELAY (30 * CLOCK_SECOND)
+#define SR_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
 /*---------------------------------------------------------------------------*/
 #ifndef CONTIKI_TARGET_SKY
@@ -100,7 +100,7 @@ PROCESS_THREAD(app_process, ev, data)
 
 #if APP_DOWNWARD_TRAFFIC == 1
 
-    etimer_set(&periodic, DOWNWARD_MSG_DELAY);
+    etimer_set(&periodic, SR_MSG_DELAY);
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
@@ -143,7 +143,7 @@ PROCESS_THREAD(app_process, ev, data)
     my_collect_open(&my_collect, COLLECT_CHANNEL, false, &node_cb);
     
 #if APP_UPWARD_TRAFFIC == 1
-    etimer_set(&periodic, UPWARD_MSG_DELAY);
+    etimer_set(&periodic, MSG_DELAY);
     while(1) {
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
