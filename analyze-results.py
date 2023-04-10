@@ -47,9 +47,9 @@ def parse_file(file):
                         pdr = float(d["pdr"])
                         plr = float(d["plr"])
                         print(node_id, tx, rx, pdr, plr)
-                        data = TrafficData(node_id, rx, tx, pdr, plr)
+                        data = TrafficData(rx, tx, pdr, plr)
                         if not node_id in nodes:
-                            nodes[node_id] = Node()
+                            nodes[node_id] = Node(node_id)
                         if data_type == DataType.DataCollection:
                             nodes[node_id].data_collection = data
                         else:
@@ -114,6 +114,9 @@ def parse_file(file):
                         node_id = int(d["node_id"])
                         duty_cycle = float(d["duty_cycle"])
                         print(node_id, duty_cycle)
+                        if not node_id in nodes:
+                            nodes[node_id] = Node(node_id)
+                        nodes[node_id].duty_cycle = duty_cycle
                         continue
                     m = regex_duty_cycle_overall_header.match(line)
                     if m:
@@ -179,24 +182,25 @@ class DataType:
     DutyCycle = 2
 
 class TrafficData:
-    def __init__(self, id, rx, tx, pdr, plr):
-        self.id = id
+    def __init__(self, rx, tx, pdr, plr):
         self.rx = rx
         self.tx = tx
         self.pdr = pdr
         self.plr = plr
 
     def __str__(self):
-        return "ID: {}\tRX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.id, self.rx, self.tx, self.pdr, self.plr)
+        return "RX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.rx, self.tx, self.pdr, self.plr)
 
 
 class Node:
-    def __init__(self):
+    def __init__(self, id):
+        self.id = id
         self.data_collection = None 
         self.source_routing = None
         self.duty_cycle = None
+    
     def __str__(self):
-        return "Data Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.data_collection, self.source_routing, self.duty_cycle)
+        return "ID: {}\tData Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 if __name__ == '__main__':
 
