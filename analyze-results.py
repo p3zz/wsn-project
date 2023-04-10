@@ -1,5 +1,82 @@
 import re
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
+
+class ParserState:
+    Init = 0
+    ReadingTrafficData = 1
+    ReadingTrafficOverallTx = 2
+    ReadingTrafficOverallRx = 3
+    ReadingTrafficOverallPdr = 4
+    ReadingTrafficOverallPlr = 5
+    ReadingDutyCycleData = 6
+    ReadingDutyCycleOverallAvg = 7
+    ReadingDutyCycleOverallStd = 8
+    ReadingDutyCycleOverallMin = 9
+    ReadingDutyCycleOverallMax = 10
+
+class DataType:
+    DataCollection = 0
+    SourceRouting = 1
+    DutyCycle = 2
+
+class DutyCycleData:
+    def __init__(self, avg, std, min, max):
+        self.avg = avg
+        self.std = std
+        self.min = min
+        self.max = max
+
+    def __str__(self):
+        return "AVG: {}\tSTD: {}\tMIN: {}\tMAX: {}".format(self.avg, self.std, self.min, self.max)
+
+class TrafficData:
+    def __init__(self, rx, tx, pdr, plr):
+        self.rx = rx
+        self.tx = tx
+        self.pdr = pdr
+        self.plr = plr
+
+    def __str__(self):
+        return "RX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.rx, self.tx, self.pdr, self.plr)
+
+
+class Node:
+    def __init__(self, id):
+        self.id = id
+        self.data_collection = None 
+        self.source_routing = None
+        self.duty_cycle = None
+    
+    def __str__(self):
+        return "ID: {}\tData Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
+
+
+def show_chart(nodes: dict[int, Node]):
+    id = list(nodes.keys())
+    nds = list(nodes.values())
+    dc_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
+    sr_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
+
+    plt.subplot(1, 2, 1)
+    plt.title("Data collection PDR")
+    plt.xlabel("Node ID")
+    plt.ylabel("PDR")
+    plt.xticks(id)
+    plt.bar(id, dc_pdr, color ='red',
+            width = 0.4)
+
+    plt.subplot(1, 2, 2)
+    plt.title("Source routing PDR")
+    plt.xlabel("Node ID")
+    plt.ylabel("PDR")
+    plt.xticks(id)
+    plt.bar(id, sr_pdr, color ='blue',
+            width = 0.4)    
+
+    plt.show()
+
 
 def parse_file(file):
 
@@ -193,55 +270,7 @@ def parse_file(file):
     print("Data collection: {}".format(data_collection_overall))
     print("Source routing: {}".format(source_routing_overall))
     print("Duty cycle: {}".format(duty_cycle_overall))
-
-class ParserState:
-    Init = 0
-    ReadingTrafficData = 1
-    ReadingTrafficOverallTx = 2
-    ReadingTrafficOverallRx = 3
-    ReadingTrafficOverallPdr = 4
-    ReadingTrafficOverallPlr = 5
-    ReadingDutyCycleData = 6
-    ReadingDutyCycleOverallAvg = 7
-    ReadingDutyCycleOverallStd = 8
-    ReadingDutyCycleOverallMin = 9
-    ReadingDutyCycleOverallMax = 10
-
-class DataType:
-    DataCollection = 0
-    SourceRouting = 1
-    DutyCycle = 2
-
-class DutyCycleData:
-    def __init__(self, avg, std, min, max):
-        self.avg = avg
-        self.std = std
-        self.min = min
-        self.max = max
-
-    def __str__(self):
-        return "AVG: {}\tSTD: {}\tMIN: {}\tMAX: {}".format(self.avg, self.std, self.min, self.max)
-
-class TrafficData:
-    def __init__(self, rx, tx, pdr, plr):
-        self.rx = rx
-        self.tx = tx
-        self.pdr = pdr
-        self.plr = plr
-
-    def __str__(self):
-        return "RX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.rx, self.tx, self.pdr, self.plr)
-
-
-class Node:
-    def __init__(self, id):
-        self.id = id
-        self.data_collection = None 
-        self.source_routing = None
-        self.duty_cycle = None
-    
-    def __str__(self):
-        return "ID: {}\tData Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
+    show_chart(nodes)
 
 if __name__ == '__main__':
 
