@@ -100,6 +100,19 @@ def parse_file(file):
                         data_type = DataType.DutyCycle
                     continue
 
+                case ParserState.ReadingDutyCycleData:
+                    m = regex_duty_cycle_data.match(line)
+                    if m:
+                        d = m.groupdict()
+                        node_id = int(d["node_id"])
+                        duty_cycle = float(d["duty_cycle"])
+                        print(node_id, duty_cycle)
+                        continue
+                    m = regex_duty_cycle_overall_header.match(line)
+                    if m:
+                        state = ParserState.ReadingDutyCycleOverallAvg
+                    continue
+
 
     f.close()
 
