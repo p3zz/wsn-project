@@ -19,9 +19,9 @@ def parse_file(file):
 
     regex_duty_cycle_overall_header = re.compile(r"----- Duty Cycle Overall Statistics -----")
     regex_duty_cycle_overall_data_avg = re.compile(r"Average Duty Cycle: (?P<avg>\d+\.\d+)%")
-    regex_duty_cycle_overall_data_std = re.compile(r"Standard Deviation: (?P<std>\d+\.\d+)%")
-    regex_duty_cycle_overall_data_max = re.compile(r"Minimum: (?P<min>\d+\.\d+)%")
-    regex_duty_cycle_overall_data_min = re.compile(r"Maximum: (?P<max>\d+\.\d+)%")
+    regex_duty_cycle_overall_data_std = re.compile(r"Standard Deviation: (?P<std>\d+\.\d+)")
+    regex_duty_cycle_overall_data_min = re.compile(r"Minimum: (?P<min>\d+\.\d+)%")
+    regex_duty_cycle_overall_data_max = re.compile(r"Maximum: (?P<max>\d+\.\d+)%")
 
 
 
@@ -112,6 +112,41 @@ def parse_file(file):
                     if m:
                         state = ParserState.ReadingDutyCycleOverallAvg
                     continue
+
+                case ParserState.ReadingDutyCycleOverallAvg:
+                    m = regex_duty_cycle_overall_data_avg.match(line)
+                    if m:
+                        d = m.groupdict()
+                        avg = float(d["avg"])
+                        print(avg)
+                        state = ParserState.ReadingDutyCycleOverallStd
+                    continue
+
+                case ParserState.ReadingDutyCycleOverallStd:
+                    m = regex_duty_cycle_overall_data_std.match(line)
+                    if m:
+                        d = m.groupdict()
+                        std = float(d["std"])
+                        print(std)
+                        state = ParserState.ReadingDutyCycleOverallMin
+                    continue
+
+                case ParserState.ReadingDutyCycleOverallMin:
+                    m = regex_duty_cycle_overall_data_min.match(line)
+                    if m:
+                        d = m.groupdict()
+                        min = float(d["min"])
+                        print(min)
+                        state = ParserState.ReadingDutyCycleOverallMax
+                    continue
+
+                case ParserState.ReadingDutyCycleOverallMax:
+                    m = regex_duty_cycle_overall_data_max.match(line)
+                    if m:
+                        d = m.groupdict()
+                        max = float(d["max"])
+                        print(max)
+                        continue
 
 
     f.close()
