@@ -53,32 +53,43 @@ class Node:
         return "ID: {}\tData Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 
-def show_chart(nodes: dict[int, Node]):
+def show_chart(nodes: dict[int, Node], filename: str):
     id = list(nodes.keys())
     nds = list(nodes.values())
-    dc_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
-    sr_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
+    data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
+    source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
+    duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
 
-    plt.subplot(1, 2, 1)
+    plt.figure(num=filename)
+
+    plt.subplot(1, 3, 1)
     plt.title("Data collection PDR")
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.xticks(id)
-    plt.bar(id, dc_pdr, color ='red',
+    plt.bar(id, data_collection_pdr, color ='red',
             width = 0.4)
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.title("Source routing PDR")
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.xticks(id)
-    plt.bar(id, sr_pdr, color ='blue',
-            width = 0.4)    
+    plt.bar(id, source_routing_pdr, color ='blue',
+            width = 0.4)
+    
+    plt.subplot(1, 3, 3)
+    plt.title("Radio Duty cycling")
+    plt.xlabel("Node ID")
+    plt.ylabel("Duty cycle")
+    plt.xticks(id)
+    plt.bar(id, duty_cycle, color ='green',
+            width = 0.4)
 
     plt.show()
 
 
-def parse_file(file):
+def parse_file(filename):
 
     regex_data_collection_header = re.compile(r"----- Data Collection Node Statistics -----")
     regex_source_routing_header = re.compile(r"----- Source Routing Node Statistics -----")
@@ -118,7 +129,7 @@ def parse_file(file):
     duty_cycle_overall_max = None
 
     # Parse log file and add data to CSV files
-    with open(file, 'r') as f:
+    with open(filename, 'r') as f:
         state = ParserState.Init
         data_type = DataType.DataCollection
         for line in f:
@@ -270,7 +281,7 @@ def parse_file(file):
     print("Data collection: {}".format(data_collection_overall))
     print("Source routing: {}".format(source_routing_overall))
     print("Duty cycle: {}".format(duty_cycle_overall))
-    show_chart(nodes)
+    show_chart(nodes, filename)
 
 if __name__ == '__main__':
 
