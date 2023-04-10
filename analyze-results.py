@@ -23,7 +23,7 @@ def parse_file(file):
     regex_duty_cycle_overall_data_min = re.compile(r"Minimum: (?P<min>\d+\.\d+)%")
     regex_duty_cycle_overall_data_max = re.compile(r"Maximum: (?P<max>\d+\.\d+)%")
 
-
+    nodes = {}
 
     # Parse log file and add data to CSV files
     with open(file, 'r') as f:
@@ -47,6 +47,13 @@ def parse_file(file):
                         pdr = float(d["pdr"])
                         plr = float(d["plr"])
                         print(node_id, tx, rx, pdr, plr)
+                        data = TrafficData(node_id, rx, tx, pdr, plr)
+                        if not node_id in nodes:
+                            nodes[node_id] = Node()
+                        if data_type == DataType.DataCollection:
+                            nodes[node_id].data_collection = data
+                        else:
+                            nodes[node_id].source_routing = data
                         continue
 
                     md = regex_data_collection_overall_header.match(line)
@@ -146,10 +153,12 @@ def parse_file(file):
                         d = m.groupdict()
                         max = float(d["max"])
                         print(max)
-                        continue
+                    continue
 
 
     f.close()
+    for key in nodes:
+        print(nodes[key])
 
 class ParserState:
     Init = 0
@@ -168,6 +177,26 @@ class DataType:
     DataCollection = 0
     SourceRouting = 1
     DutyCycle = 2
+
+class TrafficData:
+    def __init__(self, id, rx, tx, pdr, plr):
+        self.id = id
+        self.rx = rx
+        self.tx = tx
+        self.pdr = pdr
+        self.plr = plr
+
+    def __str__(self):
+        return "ID: {}\tRX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.id, self.rx, self.tx, self.pdr, self.plr)
+
+
+class Node:
+    def __init__(self):
+        self.data_collection = None 
+        self.source_routing = None
+        self.duty_cycle = None
+    def __str__(self):
+        return "Data Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.data_collection, self.source_routing, self.duty_cycle)
 
 if __name__ == '__main__':
 
