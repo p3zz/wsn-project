@@ -24,6 +24,21 @@ def parse_file(file):
     regex_duty_cycle_overall_data_max = re.compile(r"Maximum: (?P<max>\d+\.\d+)%")
 
     nodes = {}
+    data_collection_overall = None
+    data_collection_overall_tx = None
+    data_collection_overall_rx = None
+    data_collection_overall_pdr = None
+    data_collection_overall_plr = None
+    source_routing_overall = None
+    source_routing_overall_tx = None
+    source_routing_overall_rx = None
+    source_routing_overall_pdr = None
+    source_routing_overall_plr = None
+    duty_cycle_overall = None
+    duty_cycle_overall_avg = None
+    duty_cycle_overall_std = None
+    duty_cycle_overall_min = None
+    duty_cycle_overall_max = None
 
     # Parse log file and add data to CSV files
     with open(file, 'r') as f:
@@ -66,6 +81,10 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         tx = int(d["tx"])
+                        if data_type == DataType.DataCollection:
+                            data_collection_overall_tx = tx
+                        else:
+                            source_routing_overall_tx = tx
                         state = ParserState.ReadingTrafficOverallRx
                     continue
 
@@ -74,6 +93,10 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         rx = int(d["rx"])
+                        if data_type == DataType.DataCollection:
+                            data_collection_overall_rx = rx
+                        else:
+                            source_routing_overall_rx = rx
                         state = ParserState.ReadingTrafficOverallPdr
                     continue
 
@@ -82,6 +105,10 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         pdr = float(d["pdr"])
+                        if data_type == DataType.DataCollection:
+                            data_collection_overall_pdr = pdr
+                        else:
+                            source_routing_overall_pdr = pdr
                         state = ParserState.ReadingTrafficOverallPlr
                     continue
 
@@ -90,6 +117,10 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         plr = float(d["plr"])
+                        if data_type == DataType.DataCollection:
+                            data_collection_overall_plr = plr
+                        else:
+                            source_routing_overall_plr = plr
                         continue
                     m = regex_source_routing_header.match(line)
                     if m:
@@ -122,6 +153,7 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         avg = float(d["avg"])
+                        duty_cycle_overall_avg = avg
                         state = ParserState.ReadingDutyCycleOverallStd
                     continue
 
@@ -130,6 +162,7 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         std = float(d["std"])
+                        duty_cycle_overall_std = std
                         state = ParserState.ReadingDutyCycleOverallMin
                     continue
 
@@ -138,6 +171,7 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         min = float(d["min"])
+                        duty_cycle_overall_min = min
                         state = ParserState.ReadingDutyCycleOverallMax
                     continue
 
@@ -146,12 +180,19 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         max = float(d["max"])
+                        duty_cycle_overall_max = max
                     continue
 
 
     f.close()
     for key in nodes:
         print(nodes[key])
+    data_collection_overall = TrafficData(data_collection_overall_rx, data_collection_overall_tx, data_collection_overall_pdr, data_collection_overall_plr)
+    source_routing_overall = TrafficData(source_routing_overall_rx, source_routing_overall_tx, source_routing_overall_pdr, source_routing_overall_plr)
+    duty_cycle_overall = DutyCycleData(duty_cycle_overall_avg, duty_cycle_overall_std, duty_cycle_overall_min, duty_cycle_overall_max)
+    print("Data collection: {}".format(data_collection_overall))
+    print("Source routing: {}".format(source_routing_overall))
+    print("Duty cycle: {}".format(duty_cycle_overall))
 
 class ParserState:
     Init = 0
@@ -170,6 +211,16 @@ class DataType:
     DataCollection = 0
     SourceRouting = 1
     DutyCycle = 2
+
+class DutyCycleData:
+    def __init__(self, avg, std, min, max):
+        self.avg = avg
+        self.std = std
+        self.min = min
+        self.max = max
+
+    def __str__(self):
+        return "AVG: {}\tSTD: {}\tMIN: {}\tMAX: {}".format(self.avg, self.std, self.min, self.max)
 
 class TrafficData:
     def __init__(self, rx, tx, pdr, plr):
