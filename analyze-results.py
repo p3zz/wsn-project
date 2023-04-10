@@ -46,7 +46,6 @@ def parse_file(file):
                         rx = int(d["rx"])
                         pdr = float(d["pdr"])
                         plr = float(d["plr"])
-                        print(node_id, tx, rx, pdr, plr)
                         data = TrafficData(rx, tx, pdr, plr)
                         if not node_id in nodes:
                             nodes[node_id] = Node(node_id)
@@ -67,7 +66,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         tx = int(d["tx"])
-                        print(tx)
                         state = ParserState.ReadingTrafficOverallRx
                     continue
 
@@ -76,7 +74,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         rx = int(d["rx"])
-                        print(rx)
                         state = ParserState.ReadingTrafficOverallPdr
                     continue
 
@@ -85,7 +82,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         pdr = float(d["pdr"])
-                        print(pdr)
                         state = ParserState.ReadingTrafficOverallPlr
                     continue
 
@@ -94,7 +90,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         plr = float(d["plr"])
-                        print(plr)
                         continue
                     m = regex_source_routing_header.match(line)
                     if m:
@@ -113,7 +108,6 @@ def parse_file(file):
                         d = m.groupdict()
                         node_id = int(d["node_id"])
                         duty_cycle = float(d["duty_cycle"])
-                        print(node_id, duty_cycle)
                         if not node_id in nodes:
                             nodes[node_id] = Node(node_id)
                         nodes[node_id].duty_cycle = duty_cycle
@@ -128,7 +122,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         avg = float(d["avg"])
-                        print(avg)
                         state = ParserState.ReadingDutyCycleOverallStd
                     continue
 
@@ -137,7 +130,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         std = float(d["std"])
-                        print(std)
                         state = ParserState.ReadingDutyCycleOverallMin
                     continue
 
@@ -146,7 +138,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         min = float(d["min"])
-                        print(min)
                         state = ParserState.ReadingDutyCycleOverallMax
                     continue
 
@@ -155,7 +146,6 @@ def parse_file(file):
                     if m:
                         d = m.groupdict()
                         max = float(d["max"])
-                        print(max)
                     continue
 
 
