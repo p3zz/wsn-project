@@ -1,6 +1,5 @@
 import re
 import sys
-import numpy as np
 import matplotlib.pyplot as plt
 
 class ParserState:
@@ -50,20 +49,36 @@ class Node:
         self.duty_cycle = None
     
     def __str__(self):
-        return "ID: {}\tData Collection: {}\tSource routing: {}\tDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
+        return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
+class ResultData:
+    def __init__(self, filename, nodes, data_collection_overall, source_routing_overall, duty_cycle_overall):
+        self.filename = filename
+        self.nodes = nodes
+        self.data_collection_overall = data_collection_overall
+        self.source_routing_overall = source_routing_overall
+        self.duty_cycle_overall = duty_cycle_overall
 
-def show_chart(nodes: dict[int, Node], filename: str):
-    id = list(nodes.keys())
-    nds = list(nodes.values())
+    def __str__(self):
+        return "Filename: {}\nNodes: {}\nData Collection overall: {}\nSource routing overall: {}\nDuty cycle overall: {}".format(
+            self.filename, self.nodes, self.data_collection_overall, self.source_routing_overall, self.duty_cycle_overall
+        )
+    
+
+def show_chart(result_data: ResultData):
+    id = list(result_data.nodes.keys())
+    nds = list(result_data.nodes.values())
     data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
     source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
     duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
 
     plt.figure(num=filename)
 
+    plt.text(0, 0, "ciao", fontsize=14)
     plt.subplot(1, 3, 1)
-    plt.title("Data collection PDR")
+    plt.title("Data collection PDR\nRX: {}\nTX: {}\nAVG_PDR: {}%\nAVG_PLR: {}%".format(
+        result_data.data_collection_overall.rx, result_data.data_collection_overall.tx, result_data.data_collection_overall.pdr, result_data.data_collection_overall.plr)
+    )
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.xticks(id)
@@ -71,7 +86,9 @@ def show_chart(nodes: dict[int, Node], filename: str):
             width = 0.4)
 
     plt.subplot(1, 3, 2)
-    plt.title("Source routing PDR")
+    plt.title("Source routing PDR\nRX: {}\nTX: {}\nAVG_PDR: {}%\nAVG_PLR: {}%".format(
+        result_data.source_routing_overall.rx, result_data.source_routing_overall.tx, result_data.source_routing_overall.pdr, result_data.source_routing_overall.plr)
+    )
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.xticks(id)
@@ -79,7 +96,9 @@ def show_chart(nodes: dict[int, Node], filename: str):
             width = 0.4)
     
     plt.subplot(1, 3, 3)
-    plt.title("Radio Duty cycling")
+    plt.title("Radio duty cycling\nAVG: {}\nSTD: {}\nMIN: {}%\nMAX: {}%".format(
+        result_data.duty_cycle_overall.avg, result_data.duty_cycle_overall.std, result_data.duty_cycle_overall.min, result_data.duty_cycle_overall.max)
+    )
     plt.xlabel("Node ID")
     plt.ylabel("Duty cycle")
     plt.xticks(id)
@@ -273,18 +292,17 @@ def parse_file(filename):
 
 
     f.close()
-    for key in nodes:
-        print(nodes[key])
     data_collection_overall = TrafficData(data_collection_overall_rx, data_collection_overall_tx, data_collection_overall_pdr, data_collection_overall_plr)
     source_routing_overall = TrafficData(source_routing_overall_rx, source_routing_overall_tx, source_routing_overall_pdr, source_routing_overall_plr)
     duty_cycle_overall = DutyCycleData(duty_cycle_overall_avg, duty_cycle_overall_std, duty_cycle_overall_min, duty_cycle_overall_max)
-    print("Data collection: {}".format(data_collection_overall))
-    print("Source routing: {}".format(source_routing_overall))
-    print("Duty cycle: {}".format(duty_cycle_overall))
-    show_chart(nodes, filename)
+    result_data = ResultData(filename, nodes, data_collection_overall, source_routing_overall, duty_cycle_overall)
+    return result_data
 
 if __name__ == '__main__':
 
     args = sys.argv
-    parse_file(args[1])
+    filename = args[1]
+    result = parse_file(filename)
+    print(result)
+    show_chart(result)
 
