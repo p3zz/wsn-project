@@ -28,7 +28,7 @@ class DutyCycleData:
         self.max = max
 
     def __str__(self):
-        return "AVG: {}\tSTD: {}\tMIN: {}\tMAX: {}".format(self.avg, self.std, self.min, self.max)
+        return "AVG: {}%\tSTD: {}\tMIN: {}%\tMAX: {}%".format(self.avg, self.std, self.min, self.max)
 
 class TrafficData:
     def __init__(self, rx, tx, pdr, plr):
@@ -38,7 +38,7 @@ class TrafficData:
         self.plr = plr
 
     def __str__(self):
-        return "RX: {}\tTX: {}\tPDR: {}\tPLR: {}".format(self.rx, self.tx, self.pdr, self.plr)
+        return "RX: {}\tTX: {}\tPDR: {}%\tPLR: {}%".format(self.rx, self.tx, self.pdr, self.plr)
 
 
 class Node:
