@@ -97,15 +97,28 @@ def plot_test(test_data: TestData):
     plt.figure(num=test_data.name)
     # plot_result(test_data.udgm, 1, ResultType.UDGM)
     # plot_result(test_data.mrm, 4, ResultType.MRM)
-    plot_energest(test_data)
+    udgm_nodes = list(test_data.udgm.nodes.values())
+    
+    # mrm_nodes = list(test_data.mrm.nodes.values())
+    for i in range(1,10):
+        plot_energest(udgm_nodes[i], i, ResultType.UDGM)
+
     plt.show()
 
-def plot_energest(test_data: TestData):
-    nodes = list(test_data.udgm.nodes.values())
-    for node in nodes:
-        x = list(map(lambda entry: entry.time / 1000000, node.energest))
-        y = list(map(lambda entry: entry.rx_time, node.energest))
-        plt.plot(x, y, label=str(node.id))
+def plot_energest(node: Node, idx: int, result_type: ResultType):
+    time = list(map(lambda entry: entry.time / 1000000, node.energest))
+    cpu = list(map(lambda entry: entry.cpu_time, node.energest))
+    rx = list(map(lambda entry: entry.rx_time, node.energest))
+    tx = list(map(lambda entry: entry.tx_time, node.energest))
+
+    type = "UDGM" if result_type == ResultType.UDGM else "MRM"
+
+    plt.subplot(3, 3, idx)
+    plt.title("Energest ({})".format(type))
+    plt.xlabel("time")
+    plt.plot(time, cpu, color="green", label="cpu time")
+    plt.plot(time, rx, color="red", label="rx time")
+    plt.plot(time, tx, color="blue", label="tx time")
     plt.legend()
 
 def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
@@ -382,7 +395,7 @@ if __name__ == '__main__':
     # print(udgm_result, mrm_result)
     plot_test(test_data)
     
-    for i in udgm_nodes:
-        print(udgm_nodes[i])
+    # for i in udgm_nodes:
+        # print(udgm_nodes[i])
 
 
