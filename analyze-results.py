@@ -50,7 +50,7 @@ class Node:
         self.duty_cycle = None
     
     def __str__(self):
-        return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
+        return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}\n".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 class ResultData:
     def __init__(self, nodes, data_collection_overall, source_routing_overall, duty_cycle_overall):
@@ -60,8 +60,8 @@ class ResultData:
         self.duty_cycle_overall = duty_cycle_overall
 
     def __str__(self):
-        return "Nodes: {}\nData Collection overall: {}\nSource routing overall: {}\nDuty cycle overall: {}".format(
-            self.nodes, self.data_collection_overall, self.source_routing_overall, self.duty_cycle_overall
+        return "Data Collection overall: {}\nSource routing overall: {}\nDuty cycle overall: {}\n".format(
+            self.data_collection_overall, self.source_routing_overall, self.duty_cycle_overall
         )
 
 class TestData:
@@ -95,6 +95,7 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.title("Data collection PDR ({})".format(type))
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
+    plt.ylim(0, 100)
     plt.xticks(id)
     plt.bar(id, data_collection_pdr, color ='red',
             width = 0.4)
@@ -103,6 +104,7 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.title("Source routing PDR ({})".format(type))
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
+    plt.ylim(0, 100)
     plt.xticks(id)
     plt.bar(id, source_routing_pdr, color ='blue',
             width = 0.4)
