@@ -11,12 +11,16 @@ TEST_DIR="${GLOBAL_TEST_DIR}/${TEST_NAME}"
 TEST_UDGM_DIR="${TEST_DIR}/${TEST_UDGM_NAME}"
 TEST_MRM_DIR="${TEST_DIR}/${TEST_MRM_NAME}"
 
+# compile project
+make &&
+
+# create test directory
 mkdir ${TEST_DIR} && \
 
-# Configuration file
+# create configuration file
 python3 create-config.py > ${TEST_DIR}/config.txt &&
 
-# UDGM Simulation
+# run UDGM Simulation
 mkdir ${TEST_UDGM_DIR} &&
 echo UDGM Simulation started && \
 cooja_nogui ${ROOT_DIR}/test_nogui.csc
@@ -27,7 +31,7 @@ echo UDGM Simulation terminated && \
 mv ${ROOT_DIR}/test*.log ${TEST_UDGM_DIR} &&
 python3 ${ROOT_DIR}/parse-stats.py ${TEST_UDGM_DIR}/test.log > ${TEST_UDGM_DIR}/result.txt
 
-# MRM Simulation
+# run MRM Simulation
 mkdir ${TEST_MRM_DIR} &&
 echo MRM Simulation started && \
 cooja_nogui ${ROOT_DIR}/test_nogui_mrm.csc
