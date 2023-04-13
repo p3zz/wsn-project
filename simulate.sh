@@ -1,18 +1,5 @@
 #!/bin/bash
 
-: '
-Usage example:
-CONFIG_MAC=CONTIKIMAC \
-CONFIG_TOPOLOGY_DELAY=20 \
-CONFIG_TOPOLOGY_PERIOD=40 \
-CONFIG_BEACON_PERIOD=60 \
-CONFIG_MSG_DELAY=30 \
-CONFIG_MSG_PERIOD=30 \
-CONFIG_SR_MSG_DELAY=75 \
-CONFIG_SR_MSG_PERIOD=10 \
-./simulate.sh
-'
-
 ROOT_DIR=$(pwd)
 GLOBAL_TEST_DIR="${ROOT_DIR}/test"
 
@@ -27,19 +14,7 @@ TEST_MRM_DIR="${TEST_DIR}/${TEST_MRM_NAME}"
 mkdir ${TEST_DIR} && \
 
 # Configuration file
-
-echo "MAC: ${CONFIG_MAC}" >> ${TEST_DIR}/config.txt && \
-
-echo "TOPOLOGY_DELAY: ${CONFIG_TOPOLOGY_DELAY}" >> ${TEST_DIR}/config.txt && \
-echo "TOPOLOGY_PERIOD: ${CONFIG_TOPOLOGY_PERIOD}" >> ${TEST_DIR}/config.txt && \
-
-echo "BEACON_PERIOD: ${CONFIG_BEACON_PERIOD}" >> ${TEST_DIR}/config.txt && \
-
-echo "MSG_DELAY: ${CONFIG_MSG_DELAY}" >> ${TEST_DIR}/config.txt && \
-echo "MSG_PERIOD: ${CONFIG_MSG_PERIOD}" >> ${TEST_DIR}/config.txt && \
-
-echo "SR_MSG_DELAY: ${CONFIG_SR_MSG_DELAY}" >> ${TEST_DIR}/config.txt && \
-echo "SR_MSG_PERIOD: ${CONFIG_SR_MSG_PERIOD}" >> ${TEST_DIR}/config.txt
+python3 create-config.py > ${TEST_DIR}/config.txt &&
 
 # UDGM Simulation
 mkdir ${TEST_UDGM_DIR} &&
