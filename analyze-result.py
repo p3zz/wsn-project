@@ -2,7 +2,6 @@ import re
 import sys
 import matplotlib.pyplot as plt
 import os
-import csv
 
 class ParserState:
     Init = 0
@@ -49,13 +48,9 @@ class Node:
         self.data_collection = None 
         self.source_routing = None
         self.duty_cycle = None
-        self.energest = []
     
     def __str__(self):
-        result = "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}\n".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
-        for ener in self.energest:
-            result += "{}\n".format(ener)
-        return result
+        return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}\n".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 class ResultData:
     def __init__(self, nodes, data_collection_overall, source_routing_overall, duty_cycle_overall):
@@ -75,51 +70,15 @@ class TestData:
         self.udgm = udgm
         self.mrm = mrm
 
-class EnergestData:
-    def __init__(self, time: int, cnt: int, cpu_time: int, lpm_time: int, tx_time: int, rx_time: int):
-        self.time = time
-        self.cnt = cnt
-        self.cpu_time = cpu_time
-        self.lpm_time = lpm_time
-        self.tx_time = tx_time
-        self.rx_time = rx_time
-    
-    def __str__(self):
-        return "Time: {}\tCnt: {}\tCPU time: {}\tLPM time: {}\tTX time: {}\tRX time: {}\n".format(
-            self.time, self.cnt, self.cpu_time, self.lpm_time, self.tx_time, self.rx_time
-        )
-
 class ResultType:
     UDGM = 0
     MRM = 1
 
 def plot_test(test_data: TestData):
     plt.figure(num=test_data.name)
-    # plot_result(test_data.udgm, 1, ResultType.UDGM)
-    # plot_result(test_data.mrm, 4, ResultType.MRM)
-    udgm_nodes = list(test_data.udgm.nodes.values())
-    
-    # mrm_nodes = list(test_data.mrm.nodes.values())
-    for i in range(1,10):
-        plot_energest(udgm_nodes[i], i, ResultType.UDGM)
-
+    plot_result(test_data.udgm, 1, ResultType.UDGM)
+    plot_result(test_data.mrm, 4, ResultType.MRM)
     plt.show()
-
-def plot_energest(node: Node, idx: int, result_type: ResultType):
-    time = list(map(lambda entry: entry.time / 1000000, node.energest))
-    cpu = list(map(lambda entry: entry.cpu_time, node.energest))
-    rx = list(map(lambda entry: entry.rx_time, node.energest))
-    tx = list(map(lambda entry: entry.tx_time, node.energest))
-
-    type = "UDGM" if result_type == ResultType.UDGM else "MRM"
-
-    plt.subplot(3, 3, idx)
-    plt.title("Energest ({})".format(type))
-    plt.xlabel("time")
-    plt.plot(time, cpu, color="green", label="cpu time")
-    plt.plot(time, rx, color="red", label="rx time")
-    plt.plot(time, tx, color="blue", label="tx time")
-    plt.legend()
 
 def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     id = list(result_data.nodes.keys())
@@ -127,8 +86,6 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
     source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
     duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
-
-    # plt.figure(num=filename)
 
     type = "UDGM" if result_type == ResultType.UDGM else "MRM"
 
@@ -346,29 +303,10 @@ def parse_file(filename, nodes):
     duty_cycle_overall = DutyCycleData(duty_cycle_overall_avg, duty_cycle_overall_std, duty_cycle_overall_min, duty_cycle_overall_max)
     return data_collection_overall, source_routing_overall, duty_cycle_overall
 
-def parse_energest(filename: str, nodes):
-    with open(filename, mode='r') as csv_file:
-        csv_reader = csv.DictReader(csv_file, delimiter='\t')
-        for row in csv_reader:
-            node_id = int(row["node"])
-            if node_id:
-                time = int(row["time"])
-                cnt = int(row["cnt"])
-                cpu = int(row["cpu"])
-                lpm = int(row["lpm"])
-                tx = int(row["tx"])
-                rx = int(row["rx"])
-
-                energest = EnergestData(time, cnt, cpu, lpm, tx, rx)
-                nodes[node_id].energest.append(energest)
-    
-    csv_file.close()
-
 if __name__ == '__main__':
 
     args = sys.argv
     test_path = args[1]
-    energest_filename = "test-energest.csv"
     result_filename = "result.txt"
     udgm_dirname = "UDGM"
     mrm_dirname = "MRM"
@@ -376,26 +314,17 @@ if __name__ == '__main__':
     udgm_file_path = os.path.join(test_path, udgm_dirname, result_filename)
     mrm_file_path = os.path.join(test_path, mrm_dirname, result_filename)
 
-    udgm_energest_path = os.path.join(test_path, udgm_dirname, energest_filename)
-    mrm_energest_path = os.path.join(test_path, mrm_dirname, energest_filename)
-
     udgm_nodes = {}
     mrm_nodes = {}
 
     udgm_data_collection_overall, udgm_source_routing_overall, udgm_duty_cycle_overall = parse_file(udgm_file_path, udgm_nodes)
     mrm_data_collection_overall, mrm_source_routing_overall, mrm_duty_cycle_overall = parse_file(mrm_file_path, mrm_nodes)
 
-    parse_energest(udgm_energest_path, udgm_nodes)
-    parse_energest(mrm_energest_path, mrm_nodes)
-
     udgm_result = ResultData(udgm_nodes, udgm_data_collection_overall, udgm_source_routing_overall, udgm_duty_cycle_overall)
     mrm_result = ResultData(mrm_nodes, mrm_data_collection_overall, mrm_source_routing_overall, mrm_duty_cycle_overall)
     
     test_data = TestData(test_path, udgm_result, mrm_result)
-    # print(udgm_result, mrm_result)
+    print(udgm_result, mrm_result)
     plot_test(test_data)
-    
-    # for i in udgm_nodes:
-        # print(udgm_nodes[i])
 
 
