@@ -19,7 +19,8 @@ def parse_simulation_config(filename: str):
                 d = m.groupdict()
                 mote_delay = d["mote_delay"]
                 continue
-
+    
+    f.close()
     return random_seed, mote_delay
 
 def parse_project_config(filename: str):
@@ -35,7 +36,8 @@ def parse_project_config(filename: str):
                 d = m.groupdict()
                 rdc = d["rdc"]
                 continue
-
+    
+    f.close()
     return rdc
 
 def parse_my_collect(filename: str):
@@ -73,6 +75,7 @@ def parse_my_collect(filename: str):
                 beacon_period = int(d["beacon_period"])
                 continue
 
+    f.close()
     return report_period, report_delay, report_enabled, beacon_period
 
 def parse_app(filename: str):
@@ -123,7 +126,8 @@ def parse_app(filename: str):
                 d = m.groupdict()
                 sr_msg_delay = int(d["sr_msg_delay"])
                 continue
-
+            
+    f.close()
     return upward_traffic, downward_traffic, msg_period, msg_delay, sr_msg_period, sr_msg_delay
 
 
