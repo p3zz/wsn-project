@@ -51,7 +51,8 @@ def parse_file(log_file, testbed=False):
     fenergest = open(fenergest_name, 'w')
 
     # Write CSV headers
-    frecv.write("time\tdest\tsrc\tseqn\thops\n")
+    # EDIT BY FEDERICO PEZZATO
+    frecv.write("time\tdest\tsrc\tseqn\thops\tparent\n")
     fsent.write("time\tdest\tsrc\tseqn\n")
     fsrrecv.write("time\tdest\tsrc\tseqn\thops\tmetric\n")
     fsrsent.write("time\tdest\tsrc\tseqn\n")
@@ -62,7 +63,8 @@ def parse_file(log_file, testbed=False):
         # Regex for testbed experiments
         testbed_record_pattern = r"\[(?P<time>.{23})\] INFO:firefly\.(?P<self_id>\d+): \d+\.firefly < b"
         regex_node = re.compile(r"{}'Rime started with address (?P<src1>\d+).(?P<src2>\d+)'".format(testbed_record_pattern))
-        regex_recv = re.compile(r"{}'App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+)'".format(testbed_record_pattern))
+        # EDIT BY FEDERICO PEZZATO
+        regex_recv = re.compile(r"{}'App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent>\w+)'".format(testbed_record_pattern))
         regex_sent = re.compile(r"{}'App: Send seqn (?P<seqn>\d+)'".format(testbed_record_pattern))
         regex_srrecv = re.compile(r"{}'App: sr_recv from sink seqn (?P<seqn>\d+) hops (?P<hops>\d+) node metric (?P<metric>\d+)'".format(testbed_record_pattern))
         regex_srsent = re.compile(r"{}'App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)'".format(testbed_record_pattern))
@@ -72,7 +74,8 @@ def parse_file(log_file, testbed=False):
         # Regular expressions for COOJA
         record_pattern = r"(?P<time>[\w:.]+)\s+ID:(?P<self_id>\d+)\s+"
         regex_node = re.compile(r"{}Rime started with address (?P<src1>\d+).(?P<src2>\d+)".format(record_pattern))
-        regex_recv = re.compile(r"{}App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+)".format(record_pattern))
+        # EDIT BY FEDERICO PEZZATO
+        regex_recv = re.compile(r"{}App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent>\w+)".format(record_pattern))
         regex_sent = re.compile(r"{}App: Send seqn (?P<seqn>\d+)".format(record_pattern))
         regex_srrecv = re.compile(r"{}App: sr_recv from sink seqn (?P<seqn>\d+) hops (?P<hops>\d+) node metric (?P<metric>\d+)".format(record_pattern))
         regex_srsent = re.compile(r"{}App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)".format(record_pattern))
@@ -136,9 +139,12 @@ def parse_file(log_file, testbed=False):
                 dest = int(d["self_id"])
                 seqn = int(d["seqn"])
                 hops = int(d["hops"])
+                # EDIT BY FEDERICO PEZZATO 
+                parent = int(d["parent"], 16) # Discard second byte, and convert to decimal
 
+                # EDIT BY FEDERICO PEZZATO 
                 # Write to CSV file
-                frecv.write("{}\t{}\t{}\t{}\t{}\n".format(ts, dest, src, seqn, hops))
+                frecv.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(ts, dest, src, seqn, hops, parent))
 
                 # Continue with the following line
                 continue
