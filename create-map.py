@@ -1,5 +1,5 @@
 import re
-import graphics as g
+import sys
 
 class Node:
     def __init__(self, id, x, y):
@@ -85,30 +85,6 @@ def parse_config(filename: str, nodes: dict[int, Node]):
                 case ParserState.End:
                     break
                 
-    return
-
-def draw_node(win, node):
-    c = g.Circle(g.Point(node.x, node.y), 8)
-    t = g.Text(g.Point(node.x, node.y), str(node.id))
-    t.setSize(8)
-    t.setFill("black")
-    t.draw(win)
-    c.draw(win)
-
-def draw_map(nodes):
-    scale = 3
-    offset = 20
-    nds = list(nodes.values())
-    nds_scaled = list(map(lambda node: Node(node.id, (node.x * scale) + offset, (node.y * scale) + offset), nds))
-    height = max(list(map(lambda node: node.y, nds_scaled)))
-    width = max(list(map(lambda node: node.x, nds_scaled)))
-    win = g.GraphWin("nodes map", width + offset, height + offset)
-    for node in nds_scaled:
-        draw_node(win, node)
-    keyString = ""
-    while keyString!="q":
-        keyString = win.getKey() # Pause to view result
-    win.close()    # Close window when done
 
 def print_map(nodes):
     result = ""
@@ -118,11 +94,10 @@ def print_map(nodes):
     print(result)
 
 if __name__ == '__main__':
-
-    config_filename = "test_nogui.csc"
+    args = sys.argv
+    config_filename = args[1]
     nodes = {}
     parse_config(config_filename, nodes)
     # for i in nodes:
         # print(nodes[i])
     print_map(nodes)
-    draw_map(nodes)
