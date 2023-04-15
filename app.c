@@ -171,8 +171,8 @@ static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint
     return;
   }
   memcpy(&msg, packetbuf_dataptr(), sizeof(msg));
-  printf("App: Recv from %02x:%02x seqn %d hops %d\n",
-    originator->u8[0], originator->u8[1], msg.seqn, hops);
+  printf("App: Recv from %02x:%02x seqn %d hops %d parent %02x:%02x\n",
+    originator->u8[0], originator->u8[1], msg.seqn, hops, parent->u8[0], parent->u8[1]);
 }
 /*---------------------------------------------------------------------------*/
 static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
