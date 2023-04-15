@@ -55,7 +55,7 @@ def plot_energest(nodes: dict[int, Node], result_type: ResultType):
     cnt = 1
     for node in nds:
         time = list(map(lambda entry: entry.time / 1000000, node.energest))
-        cpu = list(map(lambda entry: entry.cpu_time, node.energest))
+        # cpu = list(map(lambda entry: entry.cpu_time, node.energest))
         rx = list(map(lambda entry: entry.rx_time, node.energest))
         tx = list(map(lambda entry: entry.tx_time, node.energest))
 
@@ -64,7 +64,7 @@ def plot_energest(nodes: dict[int, Node], result_type: ResultType):
         plt.subplot(rows, cols, cnt)
         # plt.title("Energest ({})".format(node.id))
         plt.xlabel("time")
-        plt.plot(time, cpu, color="green", label="[{}] cpu time".format(node.id))
+        # plt.plot(time, cpu, color="green", label="[{}] cpu time".format(node.id))
         plt.plot(time, rx, color="red", label="[{}] rx time".format(node.id))
         plt.plot(time, tx, color="blue", label="[{}] tx time".format(node.id))
         plt.legend()
@@ -80,9 +80,6 @@ if __name__ == '__main__':
     energest_filename = "test-energest.csv"
     udgm_dirname = "UDGM"
     mrm_dirname = "MRM"
-
-    udgm_file_path = os.path.join(test_path, udgm_dirname, energest_filename)
-    mrm_file_path = os.path.join(test_path, mrm_dirname, energest_filename)
 
     udgm_nodes: dict[int, Node] = {}
     mrm_nodes: dict[int, Node] = {}
