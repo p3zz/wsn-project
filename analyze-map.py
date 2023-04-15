@@ -3,6 +3,7 @@ import csv
 import sys
 import os
 import time
+from PIL import Image
 
 class Position:
     def __init__(self, x, y):
@@ -60,9 +61,9 @@ def draw_link(win, src, dst):
     c.draw(win)
 
 def draw_node(win, node):
-    c = g.Circle(g.Point(node.position.x, node.position.y), 8)
+    c = g.Circle(g.Point(node.position.x, node.position.y), 10)
     t = g.Text(g.Point(node.position.x, node.position.y), str(node.id))
-    t.setSize(8)
+    t.setSize(10)
     t.setFill("black")
     t.draw(win)
     c.draw(win)
@@ -98,6 +99,9 @@ def draw_map(nodes, result_type: ResultType):
             for data in collection:
                 draw_link(win, node, nodes[data.parent])
         draw_seqn(win, index, width * 0.5, offset)
+        win.postscript(file="image.ps", colormode='color')
+        img = Image.open("image.ps")
+        img.save("seqn_{}.png".format(index), "png")
         index+=1
         time.sleep(0.5)
         clear(win)
