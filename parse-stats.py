@@ -42,6 +42,8 @@ def parse_file(log_file, testbed=False):
     fsrrecv_name = os.path.join(fpath, f"{fname_common}-srecv.csv")
     fsrsent_name = os.path.join(fpath, f"{fname_common}-ssent.csv")
     fenergest_name = os.path.join(fpath, f"{fname_common}-energest.csv")
+    freportrecv_name = os.path.join(fpath, f"{fname_common}-reportrecv.csv")
+    freportsent_name = os.path.join(fpath, f"{fname_common}-reportsent.csv")
     
     # Open CSV output files
     frecv = open(frecv_name, 'w')
@@ -49,6 +51,8 @@ def parse_file(log_file, testbed=False):
     fsrrecv = open(fsrrecv_name, 'w')
     fsrsent = open(fsrsent_name , 'w')
     fenergest = open(fenergest_name, 'w')
+    freportrecv = open(freportrecv_name, 'w')
+    freportsent = open(freportsent_name, 'w')
 
     # Write CSV headers
     # EDIT BY FEDERICO PEZZATO
@@ -57,6 +61,8 @@ def parse_file(log_file, testbed=False):
     fsrrecv.write("time\tdest\tsrc\tseqn\thops\tmetric\n")
     fsrsent.write("time\tdest\tsrc\tseqn\n")
     fenergest.write("time\tnode\tcnt\tcpu\tlpm\ttx\trx\n")
+    freportrecv.write("time\tdest\tsrc\tnode\tparent\n")
+    freportsent.write("time\tdest\tsrc\tnode\tparent\n")
 
     # Regular expressions
     if testbed:
@@ -70,6 +76,10 @@ def parse_file(log_file, testbed=False):
         regex_srsent = re.compile(r"{}'App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)'".format(testbed_record_pattern))
         regex_dc = re.compile(r"{}'Energest: (?P<cnt>\d+) (?P<cpu>\d+) "
                               r"(?P<lpm>\d+) (?P<tx>\d+) (?P<rx>\d+)'".format(testbed_record_pattern))
+        # EDIT BY FEDERICO PEZZATO
+        regex_report_recv = re.compile(r"{}'App: report_recv from sink node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(record_pattern))
+        regex_report_sent = re.compile(r"{}'My collect: send report node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(record_pattern))
+        
     else:
         # Regular expressions for COOJA
         record_pattern = r"(?P<time>[\w:.]+)\s+ID:(?P<self_id>\d+)\s+"
@@ -81,7 +91,10 @@ def parse_file(log_file, testbed=False):
         regex_srsent = re.compile(r"{}App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)".format(record_pattern))
         regex_dc = re.compile(r"{}Energest: (?P<cnt>\d+) (?P<cpu>\d+) "
                               r"(?P<lpm>\d+) (?P<tx>\d+) (?P<rx>\d+)".format(record_pattern))
-
+        # EDIT BY FEDERICO PEZZATO
+        regex_report_recv = re.compile(r"{}App: report_recv from sink node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)".format(record_pattern))
+        regex_report_sent = re.compile(r"{}My collect: send report node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)".format(record_pattern))
+    
     # Check if any node resets
     num_resets = 0
 
@@ -139,7 +152,8 @@ def parse_file(log_file, testbed=False):
                 dest = int(d["self_id"])
                 seqn = int(d["seqn"])
                 hops = int(d["hops"])
-                # EDIT BY FEDERICO PEZZATO 
+                # EDIT BY FEDERICO PEZZATO
+                # FIXME check parent also for testbed as it's done for the src_addr
                 parent = int(d["parent"], 16) # Discard second byte, and convert to decimal
 
                 # EDIT BY FEDERICO PEZZATO 
@@ -209,6 +223,78 @@ def parse_file(log_file, testbed=False):
                 seqn = int(d["seqn"])
 
                 fsrsent.write("{}\t{}\t{}\t{}\n".format(ts, dest, src, seqn))
+        
+            # EDIT BY FEDERICO PEZZATO
+            # Report RECV
+            m = regex_report_recv.match(line)
+            if m:
+                # Get dictionary with data
+                d = m.groupdict()
+                if testbed:
+                    ts = datetime.strptime(d["time"], '%Y-%m-%d %H:%M:%S,%f')
+                    ts = ts.timestamp()
+
+                    node_addr = "{}:{}".format(d["node1"], d["node2"])
+                    try:
+                        node = addr_id_map[node_addr]
+                    except KeyError as e:
+                        print("KeyError Exception: key {} not found in "
+                              "addr_id_map".format(node_addr))
+                    
+                    parent_addr = "{}:{}".format(d["parent1"], d["parent2"])
+                    try:
+                        parent = addr_id_map[parent_addr]
+                    except KeyError as e:
+                        print("KeyError Exception: key {} not found in "
+                              "addr_id_map".format(parent_addr))
+                else:
+                    ts = d["time"]
+                    node = int(d["node1"], 16)
+                    parent = int(d["parent1"], 16)
+                
+                dest = d["self_id"]
+                src = node
+                # Write to CSV file
+                row = "{}\t{}\t{}\t{}\t{}\n".format(ts, dest, src, node, parent)
+                freportrecv.write(row)
+                # Continue with the following line
+                continue
+
+            # EDIT BY FEDERICO PEZZATO
+            # Report SENT
+            m = regex_report_sent.match(line)
+            if m:
+                # Get dictionary with data
+                d = m.groupdict()
+                if testbed:
+                    ts = datetime.strptime(d["time"], '%Y-%m-%d %H:%M:%S,%f')
+                    ts = ts.timestamp()
+
+                    node_addr = "{}:{}".format(d["node1"], d["node2"])
+                    try:
+                        node = addr_id_map[node_addr]
+                    except KeyError as e:
+                        print("KeyError Exception: key {} not found in "
+                              "addr_id_map".format(node_addr))
+                    
+                    parent_addr = "{}:{}".format(d["parent1"], d["parent2"])
+                    try:
+                        parent = addr_id_map[parent_addr]
+                    except KeyError as e:
+                        print("KeyError Exception: key {} not found in "
+                              "addr_id_map".format(parent_addr))
+                else:
+                    ts = d["time"]
+                    node = int(d["node1"], 16) # Discard second byte, and convert to decimal
+                    parent = int(d["parent1"], 16) # Discard second byte, and convert to decimal
+                
+                dest = sink_id
+                src = d["self_id"]
+                # Write to CSV file
+                row = "{}\t{}\t{}\t{}\t{}\n".format(ts, dest, src, node, parent)
+                freportsent.write(row)
+                # Continue with the following line
+                continue
 
     # Close files
     frecv.close()
@@ -216,6 +302,9 @@ def parse_file(log_file, testbed=False):
     fsrrecv.close()
     fsrsent.close()
     fenergest.close()
+    # EDIT BY FEDERICO PEZZATO
+    freportrecv.close()
+    freportsent.close()
 
     if num_resets > 0:
         print("----- WARNING -----")
@@ -227,6 +316,10 @@ def parse_file(log_file, testbed=False):
 
     # Compute source routing statistics
     compute_srouting_stats(fsrsent_name , fsrrecv_name)
+
+    # EDIT BY FEDERICO PEZZATO
+    # Compute report statistics
+    compute_report_stats(freportsent_name, freportrecv_name)
 
     # Compute node duty cycle
     compute_node_duty_cycle(fenergest_name)
@@ -325,6 +418,41 @@ def compute_srouting_stats(fsrsent_name , fsrrecv_name):
         print("Total Number of Packets Sent: {}".format(tsrsent))
         print("Total Number of Packets Received: {}".format(tsrrecv))
         opdr = 100 * tsrrecv / tsrsent
+        print("Overall PDR = {:.2f}%".format(opdr))
+        print("Overall PLR = {:.2f}%".format(100 - opdr))
+
+# EDIT BY FEDERICO PEZZATO
+def compute_report_stats(fsent_name , frecv_name):
+
+    df_sent = pd.read_csv(fsent_name, sep='\t')
+    df_recv = pd.read_csv(frecv_name, sep='\t')
+
+    # Print node stats
+    print("\n----- Report Statistics -----\n")
+    # Overall number of packets sent / received
+    tsent = 0
+    trecv = 0
+
+    for node in sorted(df_sent.src.unique()):
+        nsent = len(df_sent[df_sent.src == int(node)])
+        nrecv = 0
+        if node in (df_recv.src.unique()):
+            nrecv = len(df_recv[df_recv.src == int(node)])
+
+        pdr = 100 * nrecv / nsent
+        print("Node {}: TX Packets = {}, RX Packets = {}, PDR = {:.2f}%, PLR = {:.2f}%".format(
+            node, nsent, nrecv, pdr, 100 - pdr))
+
+        # Update overall packets sent / received
+        tsent += nsent
+        trecv += nrecv
+
+    # Print overall stats
+    if tsent > 0:
+        print("\n----- Report Overall Statistics -----\n")
+        print("Total Number of Packets Sent: {}".format(tsent))
+        print("Total Number of Packets Received: {}".format(trecv))
+        opdr = 100 * trecv / tsent
         print("Overall PDR = {:.2f}%".format(opdr))
         print("Overall PLR = {:.2f}%".format(100 - opdr))
 
