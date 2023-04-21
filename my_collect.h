@@ -24,6 +24,7 @@ void topology_print();
 bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
 bool packetbuf_hdrcontains(linkaddr_t addr);
 void packetbuf_hdrprint();
+int random_int(int max);
 /*---------------------------------------------------------------------------*/
 /* Connection object */
 struct my_collect_conn {
@@ -42,6 +43,7 @@ struct my_collect_conn {
 struct my_collect_callbacks {
   void (*recv)(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops);
   void (*sr_recv)(struct my_collect_conn *ptr, uint8_t hops);
+  void (*report_recv)(struct my_collect_conn *ptr);
 };
 /*---------------------------------------------------------------------------*/
 /* Initialize a collect connection 

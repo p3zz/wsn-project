@@ -20,6 +20,8 @@ void topology_print();
 bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr);
 bool packetbuf_hdrcontains(linkaddr_t addr);
 void packetbuf_hdrprint();
+int random_int(int max);
+void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent);
 /*---------------------------------------------------------------------------*/
 /* Rime Callback structures */
 struct broadcast_callbacks bc_cb = {
@@ -52,22 +54,20 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
     topology_allocate();
     ctimer_set(&conn->beacon_timer, CLOCK_SECOND, beacon_timer_cb, conn);
   }
-#if TOPOLOGY_REPORT_ENABLED == 1
-  else{
-    ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_DELAY, report_timer_cb, conn);
-  }
-#endif
 }
 
 /* Topology report timer callback */
 void report_timer_cb(void* ptr){
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr; 
-  struct topology_report report = {.source=linkaddr_node_addr, .parent=conn->parent};
+  send_report(&conn->uc, linkaddr_node_addr, conn->parent);
+}
+
+void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent){
+  struct topology_report report = {.source = source, .parent = parent};
   packetbuf_clear();
   packetbuf_copyfrom(&report, sizeof(report));
-  unicast_send(&conn->uc, &conn->parent);
-  printf("[REPORT]: send report [node: %02x:%02x, parent: %02x:%02x]\n", report.source.u8[0], report.source.u8[1], report.parent.u8[0], report.parent.u8[1]);
-  ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
+  unicast_send(uc, &parent);
+  printf("My collect: send report node %02x:%02x parent %02x:%02x\n", report.source.u8[0], report.source.u8[1], report.parent.u8[0], report.parent.u8[1]);
 }
 
 /* Send beacon using the current seqn and metric */
@@ -79,8 +79,6 @@ void send_beacon(struct my_collect_conn* conn){
   /* Send the beacon message in broadcast */
   packetbuf_clear();
   packetbuf_copyfrom(&beacon, sizeof(beacon));
-  printf("[BEACON]: send seqn %d metric %d\n",
-    conn->beacon_seqn, conn->metric);
   broadcast_send(&conn->bc);
 }
 /*---------------------------------------------------------------------------*/
@@ -118,10 +116,6 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
 
   rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
-  printf("[BEACON]: recv from %02x:%02x seqn %u metric %u rssi %d\n", 
-      sender->u8[0], sender->u8[1], 
-      beacon.seqn, beacon.metric, rssi);
-
   // The beacon is either too weak or too old, ignore it
   if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; 
   if (beacon.seqn == conn->beacon_seqn){
@@ -136,6 +130,10 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
       sender->u8[0], sender->u8[1], conn->metric);
 
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
+#if TOPOLOGY_REPORT_ENABLED == 1
+  // ctimer_reset(&conn->report_timer);
+  ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
+#endif
 }
 
 
@@ -158,9 +156,9 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     offsetof(struct my_collect_conn, uc));
 
   // ---------------- DOWNWARD DATA-----------------  
-  // if the data comes from a parent, it must be downward data 
+  // if the data comes from a parent, it must be downward data
   if (linkaddr_cmp(from, &conn->parent)) {
-
+    // ---------------- SOURCE ROUTING RECV -----------------  
     // retrieve the route length (on the top of the header), then remove it
     linkaddr_t hops;
     memcpy(&hops, packetbuf_dataptr(), sizeof(hops));
@@ -191,23 +189,24 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
   }
   // ---------------- UPWARD DATA-----------------  
   else{
+    // ---------------- TOPOLOGY REPORT RECV -----------------  
     if(packetbuf_datalen() == sizeof(struct topology_report)){
       struct topology_report report;
       memcpy(&report, packetbuf_dataptr(), sizeof(report));
-      // if the current node is a sink, call the recv callback
-      // FIXME we need to move the topology set here instead of sending a fake hops counter
       if (conn->is_sink) {
         topology_set(report.source, report.parent);
+        conn->callbacks->report_recv(conn);
+        return;
       }
-      else{
-        if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
-          printf("[DATA]: ERROR, unable to forward data packet");
-          return;
-        }
-        // else forward the packet to the parent
-        unicast_send(&conn->uc, &conn->parent);
+      if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
+        printf("[DATA]: ERROR, unable to forward data packet");
+        return;
       }
-    } else{
+      // else forward the packet to the parent
+      unicast_send(&conn->uc, &conn->parent);
+    }
+    else{
+      // ---------------- COLLECT HEADER RECV -----------------  
       struct collect_header hdr;
 
       memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
@@ -248,7 +247,6 @@ bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
 bool packetbuf_hdrcontains(linkaddr_t addr){
   linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
   int i = 0;
-  printf("Loop check\n");
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
     if(linkaddr_cmp(&route[i], &addr)) return true;
     i++;
@@ -261,7 +259,6 @@ void packetbuf_hdrprint(){
   int i = 0;
   linkaddr_t hops = route[i];
   i++;
-  printf("Route length: %d, nodes: [", hops.u8[0]);
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
     printf("%02x:%02x -> ", route[i].u8[0], route[i].u8[1]);
     i++;
@@ -278,7 +275,7 @@ int topology_set(linkaddr_t node, linkaddr_t parent){
     // if found, update the parent
     if(linkaddr_cmp(&topology[i].source, &node)){
       linkaddr_copy(&topology[i].parent, &parent);
-      topology_print();
+      // topology_print();
       return 0;
     }
   }
@@ -314,4 +311,12 @@ void topology_print(){
   for(i=0;i<topology_size;i++){
     printf("[node: %02x:%02x, parent: %02x:%02x]\n", topology[i].source.u8[0], topology[i].source.u8[1], topology[i].parent.u8[0], topology[i].parent.u8[1]);
   }
+}
+
+int random_int(int max){
+   return random_rand() % (max + 1);
+}
+
+float random_float(float max){
+  return (float)random_rand() / (float)(RAND_MAX / max);
 }
