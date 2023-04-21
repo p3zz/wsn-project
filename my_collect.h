@@ -10,9 +10,10 @@
 /*---------------------------------------------------------------------------*/
 #define MAX_PATH_LENGTH 10
 #define MAX_NODES 40
-#define TOPOLOGY_REPORT_PERIOD (30 * CLOCK_SECOND)
-#define TOPOLOGY_REPORT_DELAY (20 * CLOCK_SECOND)
+#define TOPOLOGY_REPORT_PERIOD (40 * CLOCK_SECOND)
+// #define TOPOLOGY_REPORT_DELAY (20 * CLOCK_SECOND)
 #define TOPOLOGY_REPORT_ENABLED 1
+#define ACK_ENABLED 1
 #define BEACON_INTERVAL (60 * CLOCK_SECOND) 
 #define BEACON_FORWARD_DELAY (random_rand() % CLOCK_SECOND)
 #define RSSI_THRESHOLD -95

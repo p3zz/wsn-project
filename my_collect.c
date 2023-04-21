@@ -171,12 +171,16 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     linkaddr_t next;
     memcpy(&next, packetbuf_dataptr(), sizeof(next));
 
-    printf("sr forward to %02x:%02x\n", next.u8[0], next.u8[1]);
-
     // check if we have reached the destination
     if (linkaddr_cmp(&next, &linkaddr_null)){
       if (!packetbuf_hdrreduce(sizeof(next))) return;
-      conn->callbacks->sr_recv(conn, hops.u8[0]);
+      // if the remaining packetbuf is empty, we received an ack
+      if(packetbuf_datalen() == 0){
+        ctimer_stop(&conn->report_timer);
+        printf("ack received\n");
+      }else{
+        conn->callbacks->sr_recv(conn, hops.u8[0]);
+      }
       return;
     }
 
@@ -211,14 +215,15 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
       hdr.hops = hdr.hops + 1;
 
       if (conn->is_sink) {
-        if (packetbuf_hdrreduce(sizeof(hdr))){
-          topology_set(hdr.report.source, hdr.report.parent);
-          conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function
-        }
-        else
+        if (!packetbuf_hdrreduce(sizeof(hdr))){
           printf("[DATA]: ERROR, the header could not be reduced!");
-      }
-      else {/* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
+          return;
+        }
+        topology_set(hdr.report.source, hdr.report.parent);
+        conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function
+        packetbuf_clear();
+        sr_send(conn, &hdr.report.source);
+      } else { /* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
         if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
           printf("[DATA]: ERROR, unable to forward data packet -- source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
           return;
