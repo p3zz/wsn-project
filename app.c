@@ -13,7 +13,7 @@
 /*---------------------------------------------------------------------------*/
 #define MSG_PERIOD (30 * CLOCK_SECOND)
 #define SR_MSG_PERIOD (10 * CLOCK_SECOND)
-#define MSG_DELAY (30 * CLOCK_SECOND)
+#define MSG_DELAY (20 * CLOCK_SECOND)
 #define SR_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
 /*---------------------------------------------------------------------------*/
@@ -68,15 +68,18 @@ static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint
  *  hops: number of hops of the route followed by the packet to reach the destination
  */
 static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops);
+static void report_recv_cb(struct my_collect_conn *ptr);
 /*---------------------------------------------------------------------------*/
 static struct my_collect_callbacks sink_cb = {
   .recv = recv_cb,
   .sr_recv = NULL,
+  .report_recv = report_recv_cb
 };
 /*---------------------------------------------------------------------------*/
 static struct my_collect_callbacks node_cb = {
   .recv = NULL,
   .sr_recv = sr_recv_cb,
+  .report_recv = NULL
 };
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(app_process, ev, data)
@@ -105,8 +108,7 @@ PROCESS_THREAD(app_process, ev, data)
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
       etimer_set(&periodic, SR_MSG_PERIOD);
-      /* Random shift within the first half of the interval */
-      etimer_set(&rnd, random_rand() % (SR_MSG_PERIOD / 2));
+      etimer_set(&rnd, random_int(SR_MSG_PERIOD * 0.5));
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&rnd));
 
       /* Set application data packet */
@@ -148,8 +150,7 @@ PROCESS_THREAD(app_process, ev, data)
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic));
       /* Fixed interval */
       etimer_set(&periodic, MSG_PERIOD);
-      /* Random shift within the interval */
-      etimer_set(&rnd, random_rand() % (MSG_PERIOD/2));
+      etimer_set(&rnd, random_int(MSG_PERIOD * 0.5));
       PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&rnd));
 
       packetbuf_clear();
@@ -186,6 +187,17 @@ static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
     sr_msg.seqn, hops, ptr->metric);
 }
 /*---------------------------------------------------------------------------*/
+static void report_recv_cb(struct my_collect_conn *ptr){
+  struct topology_report msg;
+  if (packetbuf_datalen() != sizeof(msg)) {
+    printf("App: report_recv wrong length: %d\n", packetbuf_datalen());
+    return;
+  }
+  memcpy(&msg, packetbuf_dataptr(), sizeof(msg));
+  printf("App: report_recv from sink node %02x:%02x parent %02x:%02x\n",
+    msg.source.u8[0], msg.source.u8[1], msg.parent.u8[0], msg.parent.u8[1]);
+}
+/*---------------------------------------------------------------------------*/
 int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   linkaddr_t next = *dest;
   linkaddr_t parent = topology_get(next);
@@ -209,7 +221,7 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
       // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
       linkaddr_t h = {{hops, 0x00}};
       if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
-      packetbuf_hdrprint();
+      // packetbuf_hdrprint();
       return unicast_send(&conn->uc, &next);
     }
     // otherwise, add the node to the route and compute the next parent
