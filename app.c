@@ -13,7 +13,7 @@
 /*---------------------------------------------------------------------------*/
 #define MSG_PERIOD (30 * CLOCK_SECOND)
 #define SR_MSG_PERIOD (10 * CLOCK_SECOND)
-#define MSG_DELAY (20 * CLOCK_SECOND)
+#define MSG_DELAY (30 * CLOCK_SECOND)
 #define SR_MSG_DELAY (75 * CLOCK_SECOND)
 #define COLLECT_CHANNEL 0xAA
 /*---------------------------------------------------------------------------*/
