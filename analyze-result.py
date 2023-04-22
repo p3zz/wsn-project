@@ -19,7 +19,8 @@ class ParserState:
 class DataType:
     DataCollection = 0
     SourceRouting = 1
-    DutyCycle = 2
+    Report = 2
+    DutyCycle = 3
 
 class DutyCycleData:
     def __init__(self, avg, std, min, max):
@@ -48,20 +49,22 @@ class Node:
         self.data_collection = None 
         self.source_routing = None
         self.duty_cycle = None
+        self.report = None
     
     def __str__(self):
         return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}\n".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 class ResultData:
-    def __init__(self, nodes, data_collection_overall, source_routing_overall, duty_cycle_overall):
+    def __init__(self, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall):
         self.nodes = nodes
         self.data_collection_overall = data_collection_overall
         self.source_routing_overall = source_routing_overall
         self.duty_cycle_overall = duty_cycle_overall
+        self.report_overall = report_overall
 
     def __str__(self):
-        return "Data Collection overall: {}\nSource routing overall: {}\nDuty cycle overall: {}\n".format(
-            self.data_collection_overall, self.source_routing_overall, self.duty_cycle_overall
+        return "Data Collection overall: {}\nSource routing overall: {}\nReport overall: {}\nDuty cycle overall: {}\n".format(
+            self.data_collection_overall, self.source_routing_overall, self.report_overall, self.duty_cycle_overall
         )
 
 class TestData:
@@ -77,7 +80,7 @@ class ResultType:
 def plot_test(test_data: TestData):
     plt.figure(num=test_data.name)
     plot_result(test_data.udgm, 1, ResultType.UDGM)
-    plot_result(test_data.mrm, 4, ResultType.MRM)
+    plot_result(test_data.mrm, 5, ResultType.MRM)
     plt.show()
 
 def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
@@ -85,11 +88,12 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     nds = list(result_data.nodes.values())
     data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
     source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
+    report_pdr = list(map(lambda node : node.report.pdr if node.report else 0, nds))
     duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
 
     type = "UDGM" if result_type == ResultType.UDGM else "MRM"
 
-    plt.subplot(2, 3, idx)
+    plt.subplot(2, 4, idx)
     plt.title("Data collection PDR ({})".format(type))
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
@@ -98,7 +102,7 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.bar(id, data_collection_pdr, color ='red',
             width = 0.4)
 
-    plt.subplot(2, 3, idx+1)
+    plt.subplot(2, 4, idx+1)
     plt.title("Source routing PDR ({})".format(type))
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
@@ -107,10 +111,20 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.bar(id, source_routing_pdr, color ='blue',
             width = 0.4)
     
-    plt.subplot(2, 3, idx+2)
-    plt.title("Radio duty cycling ({})".format(type))
+    plt.subplot(2, 4, idx+2)
+    plt.title("Report PDR ({})".format(type))
     plt.xlabel("Node ID")
-    plt.ylabel("Duty cycle")
+    plt.ylabel("PDR")
+    plt.ylim(0, 100)
+    plt.xticks(id)
+    plt.bar(id, report_pdr, color ='green',
+            width = 0.4)
+    
+    plt.subplot(2, 4, idx+3)
+    plt.title("Duty cycle ({})".format(type))
+    plt.xlabel("Node ID")
+    plt.ylabel("Duty Cycle")
+    # plt.ylim(0, 100)
     plt.xticks(id)
     plt.bar(id, duty_cycle, color ='green',
             width = 0.4)
@@ -119,10 +133,12 @@ def parse_file(filename, nodes):
 
     regex_data_collection_header = re.compile(r"----- Data Collection Node Statistics -----")
     regex_source_routing_header = re.compile(r"----- Source Routing Node Statistics -----")
+    regex_report_header = re.compile(r"----- Report Statistics -----")
     regex_node_data = re.compile(r"Node (?P<node_id>\d+): TX Packets = (?P<tx>\d+), RX Packets = (?P<rx>\d+), PDR = (?P<pdr>\d+\.\d+)%, PLR = (?P<plr>\d+\.\d+)%")
 
     regex_data_collection_overall_header = re.compile(r"----- Data Collection Overall Statistics -----")
     regex_source_routing_overall_header = re.compile(r"----- Source Routing Overall Statistics -----")
+    regex_report_overall_header = re.compile(r"----- Report Overall Statistics -----")
     regex_node_overall_data_tx = re.compile(r"Total Number of Packets Sent: (?P<tx>\d+)")
     regex_node_overall_data_rx = re.compile(r"Total Number of Packets Received: (?P<rx>\d+)")
     regex_node_overall_data_pdr = re.compile(r"Overall PDR = (?P<pdr>\d+\.\d+)%")
@@ -147,6 +163,11 @@ def parse_file(filename, nodes):
     source_routing_overall_rx = None
     source_routing_overall_pdr = None
     source_routing_overall_plr = None
+    report_overall = None
+    report_overall_tx = None
+    report_overall_rx = None
+    report_overall_pdr = None
+    report_overall_plr = None
     duty_cycle_overall = None
     duty_cycle_overall_avg = None
     duty_cycle_overall_std = None
@@ -179,13 +200,16 @@ def parse_file(filename, nodes):
                             nodes[node_id] = Node(node_id)
                         if data_type == DataType.DataCollection:
                             nodes[node_id].data_collection = data
+                        elif data_type == DataType.Report:
+                            nodes[node_id].report = data
                         else:
                             nodes[node_id].source_routing = data
                         continue
 
                     md = regex_data_collection_overall_header.match(line)
                     ms = regex_source_routing_overall_header.match(line)
-                    if md or ms:
+                    mr = regex_report_overall_header.match(line)
+                    if md or ms or mr:
                         state = ParserState.ReadingTrafficOverallTx
                     continue
 
@@ -196,6 +220,8 @@ def parse_file(filename, nodes):
                         tx = int(d["tx"])
                         if data_type == DataType.DataCollection:
                             data_collection_overall_tx = tx
+                        elif data_type == DataType.Report:
+                            report_overall_tx = tx
                         else:
                             source_routing_overall_tx = tx
                         state = ParserState.ReadingTrafficOverallRx
@@ -208,6 +234,8 @@ def parse_file(filename, nodes):
                         rx = int(d["rx"])
                         if data_type == DataType.DataCollection:
                             data_collection_overall_rx = rx
+                        elif data_type == DataType.Report:
+                            report_overall_rx = rx
                         else:
                             source_routing_overall_rx = rx
                         state = ParserState.ReadingTrafficOverallPdr
@@ -220,6 +248,8 @@ def parse_file(filename, nodes):
                         pdr = float(d["pdr"])
                         if data_type == DataType.DataCollection:
                             data_collection_overall_pdr = pdr
+                        elif data_type == DataType.Report:
+                            report_overall_pdr = pdr
                         else:
                             source_routing_overall_pdr = pdr
                         state = ParserState.ReadingTrafficOverallPlr
@@ -232,13 +262,16 @@ def parse_file(filename, nodes):
                         plr = float(d["plr"])
                         if data_type == DataType.DataCollection:
                             data_collection_overall_plr = plr
+                        elif data_type == DataType.Report:
+                            report_overall_plr = plr
                         else:
                             source_routing_overall_plr = plr
                         continue
-                    m = regex_source_routing_header.match(line)
-                    if m:
+                    ms = regex_source_routing_header.match(line)
+                    mr = regex_report_header.match(line)
+                    if ms or mr:
                         state = ParserState.ReadingTrafficData
-                        data_type = DataType.SourceRouting
+                        data_type = DataType.SourceRouting if ms else DataType.Report
                         continue
                     m = regex_duty_cycle_header.match(line)
                     if m:
@@ -300,8 +333,9 @@ def parse_file(filename, nodes):
     f.close()
     data_collection_overall = TrafficData(data_collection_overall_rx, data_collection_overall_tx, data_collection_overall_pdr, data_collection_overall_plr)
     source_routing_overall = TrafficData(source_routing_overall_rx, source_routing_overall_tx, source_routing_overall_pdr, source_routing_overall_plr)
+    report_overall = TrafficData(report_overall_rx, report_overall_tx, report_overall_pdr, report_overall_plr)
     duty_cycle_overall = DutyCycleData(duty_cycle_overall_avg, duty_cycle_overall_std, duty_cycle_overall_min, duty_cycle_overall_max)
-    return data_collection_overall, source_routing_overall, duty_cycle_overall
+    return data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall
 
 if __name__ == '__main__':
 
@@ -317,11 +351,11 @@ if __name__ == '__main__':
     udgm_nodes = {}
     mrm_nodes = {}
 
-    udgm_data_collection_overall, udgm_source_routing_overall, udgm_duty_cycle_overall = parse_file(udgm_file_path, udgm_nodes)
-    mrm_data_collection_overall, mrm_source_routing_overall, mrm_duty_cycle_overall = parse_file(mrm_file_path, mrm_nodes)
+    udgm_data_collection_overall, udgm_source_routing_overall, udgm_report_overall, udgm_duty_cycle_overall = parse_file(udgm_file_path, udgm_nodes)
+    mrm_data_collection_overall, mrm_source_routing_overall, mrm_report_overall, mrm_duty_cycle_overall = parse_file(mrm_file_path, mrm_nodes)
 
-    udgm_result = ResultData(udgm_nodes, udgm_data_collection_overall, udgm_source_routing_overall, udgm_duty_cycle_overall)
-    mrm_result = ResultData(mrm_nodes, mrm_data_collection_overall, mrm_source_routing_overall, mrm_duty_cycle_overall)
+    udgm_result = ResultData(udgm_nodes, udgm_data_collection_overall, udgm_source_routing_overall, udgm_report_overall, udgm_duty_cycle_overall)
+    mrm_result = ResultData(mrm_nodes, mrm_data_collection_overall, mrm_source_routing_overall, mrm_report_overall, mrm_duty_cycle_overall)
     
     test_data = TestData(test_path, udgm_result, mrm_result)
     print(udgm_result, mrm_result)
