@@ -122,18 +122,24 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
     // The beacon is not new and the metric is higher than the previous, ignore it
     if(beacon.metric+1 >= conn->metric) return; 
   }
+#if TOPOLOGY_REPORT_ENABLED == 1
+  #if TOPOLOGY_REPORT_IMPROVEMENT == 1
+    if(!linkaddr_cmp(&conn->parent, sender)){
+  #endif
+      ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_DELAY, report_timer_cb, conn);
+  #if TOPOLOGY_REPORT_IMPROVEMENT == 1
+    }else{
+      ctimer_stop(&conn->report_timer);
+    }
+  #endif
+#endif
   /* Otherwise, memorize the new parent, the metric, and the seqn */
   linkaddr_copy(&conn->parent, sender);
   conn->metric = beacon.metric + 1;
   conn->beacon_seqn = beacon.seqn;
   printf("[BEACON]: new parent %02x:%02x, my metric %d\n", 
       sender->u8[0], sender->u8[1], conn->metric);
-
   ctimer_set(&conn->beacon_timer, BEACON_FORWARD_DELAY, beacon_timer_cb, conn);
-#if TOPOLOGY_REPORT_ENABLED == 1
-  // ctimer_reset(&conn->report_timer);
-  ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
-#endif
 }
 
 
@@ -220,8 +226,6 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
         }
         topology_set(hdr.report.source, hdr.report.parent);
         conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function
-        packetbuf_clear();
-        sr_send(conn, &hdr.report.source);
       } else { /* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
         if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
           printf("[DATA]: ERROR, unable to forward data packet -- source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
