@@ -137,10 +137,6 @@ if __name__ == '__main__':
 
     args = sys.argv
     cooja_config_path = args[1]
-    udgm_config_filename = "udgm.csc"
-    mrm_config_filename = "mrm.csc"
-    udgm_config_path = os.path.join(cooja_config_path, udgm_config_filename)
-    mrm_config_path = os.path.join(cooja_config_path, mrm_config_filename)
     app_filename = "app.c"
     my_collect_filename = "my_collect.h"
     project_config_filename = "project-conf.h"
@@ -148,8 +144,7 @@ if __name__ == '__main__':
     upward_traffic, downward_traffic, msg_period, msg_delay, sr_msg_period, sr_msg_delay = parse_app(app_filename)
     report_period, report_delay, report_enabled, beacon_period = parse_my_collect(my_collect_filename)
     rdc = parse_project_config(project_config_filename)
-    ugdm_random_seed, udgm_mote_delay = parse_simulation_config(udgm_config_path)
-    mrm_random_seed, mrm_mote_delay = parse_simulation_config(mrm_config_path)
+    random_seed, mote_delay = parse_simulation_config(cooja_config_path)
 
     output = ""
     output += "UPWARD_TRAFFIC={}\n".format(upward_traffic)
@@ -163,9 +158,7 @@ if __name__ == '__main__':
     output += "REPORT_ENABLED={}\n".format(report_enabled)
     output += "BEACON_PERIOD={}\n".format(beacon_period)
     output += "RDC={}\n".format(rdc)
-    output += "UDGM_RANDOM_SEED={}\n".format(ugdm_random_seed)
-    output += "UDGM_MOTE_DELAY={}\n".format(udgm_mote_delay)
-    output += "MRM_RANDOM_SEED={}\n".format(mrm_random_seed)
-    output += "MRM_MOTE_DELAY={}\n".format(mrm_mote_delay)
+    output += "MOTE_DELAY={}\n".format(mote_delay)
+    output += "RANDOM_SEED={}\n".format(random_seed)
 
     print(output)
