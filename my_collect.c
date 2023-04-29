@@ -54,12 +54,20 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
     topology_allocate();
     ctimer_set(&conn->beacon_timer, CLOCK_SECOND, beacon_timer_cb, conn);
   }
+#if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 0
+  else{
+    ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_DELAY, report_timer_cb, conn);
+  }
+#endif
 }
 
 /* Topology report timer callback */
 void report_timer_cb(void* ptr){
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr; 
   send_report(&conn->uc, linkaddr_node_addr, conn->parent);
+#if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 0
+  ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
+#endif
 }
 
 void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent){
@@ -122,12 +130,12 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
     // The beacon is not new and the metric is higher than the previous, ignore it
     if(beacon.metric+1 >= conn->metric) return; 
   }
-#if TOPOLOGY_REPORT_ENABLED == 1
-  #if TOPOLOGY_REPORT_IMPROVEMENT == 1
+#if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 1
+  #if NPNR_ENABLED == 1
     if(!linkaddr_cmp(&conn->parent, sender)){
   #endif
       ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_DELAY, report_timer_cb, conn);
-  #if TOPOLOGY_REPORT_IMPROVEMENT == 1
+  #if NPNR_ENABLED == 1
     }else{
       ctimer_stop(&conn->report_timer);
     }
