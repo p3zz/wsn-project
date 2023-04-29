@@ -1,7 +1,6 @@
 import re
 import sys
 import matplotlib.pyplot as plt
-import os
 
 class ParserState:
     Init = 0
@@ -67,23 +66,11 @@ class ResultData:
             self.data_collection_overall, self.source_routing_overall, self.report_overall, self.duty_cycle_overall
         )
 
-class TestData:
-    def __init__(self, name: str, udgm: ResultData, mrm: ResultData):
-        self.name = name
-        self.udgm = udgm
-        self.mrm = mrm
-
-class ResultType:
-    UDGM = 0
-    MRM = 1
-
-def plot_test(test_data: TestData):
-    plt.figure(num=test_data.name)
-    plot_result(test_data.udgm, 1, ResultType.UDGM)
-    plot_result(test_data.mrm, 5, ResultType.MRM)
+def plot_test(result: ResultData):
+    plot_result(result)
     plt.show()
 
-def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
+def plot_result(result_data: ResultData):
     id = list(result_data.nodes.keys())
     nds = list(result_data.nodes.values())
     data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
@@ -91,10 +78,8 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     report_pdr = list(map(lambda node : node.report.pdr if node.report else 0, nds))
     duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
 
-    type = "UDGM" if result_type == ResultType.UDGM else "MRM"
-
-    plt.subplot(2, 4, idx)
-    plt.title("Data collection PDR ({})".format(type))
+    plt.subplot(1, 4, 1)
+    plt.title("Data collection PDR")
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.ylim(0, 100)
@@ -102,8 +87,8 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.bar(id, data_collection_pdr, color ='red',
             width = 0.4)
 
-    plt.subplot(2, 4, idx+1)
-    plt.title("Source routing PDR ({})".format(type))
+    plt.subplot(1, 4, 2)
+    plt.title("Source routing PDR")
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.ylim(0, 100)
@@ -111,8 +96,8 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.bar(id, source_routing_pdr, color ='blue',
             width = 0.4)
     
-    plt.subplot(2, 4, idx+2)
-    plt.title("Report PDR ({})".format(type))
+    plt.subplot(1, 4, 3)
+    plt.title("Report PDR")
     plt.xlabel("Node ID")
     plt.ylabel("PDR")
     plt.ylim(0, 100)
@@ -120,8 +105,8 @@ def plot_result(result_data: ResultData, idx: int, result_type: ResultType):
     plt.bar(id, report_pdr, color ='green',
             width = 0.4)
     
-    plt.subplot(2, 4, idx+3)
-    plt.title("Duty cycle ({})".format(type))
+    plt.subplot(1, 4, 4)
+    plt.title("Duty cycle")
     plt.xlabel("Node ID")
     plt.ylabel("Duty Cycle")
     # plt.ylim(0, 100)
@@ -340,25 +325,13 @@ def parse_file(filename, nodes):
 if __name__ == '__main__':
 
     args = sys.argv
-    test_path = args[1]
-    result_filename = "result.txt"
-    udgm_dirname = "UDGM"
-    mrm_dirname = "MRM"
+    result_path = args[1]
+    nodes = {}
+    data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
 
-    udgm_file_path = os.path.join(test_path, udgm_dirname, result_filename)
-    mrm_file_path = os.path.join(test_path, mrm_dirname, result_filename)
-
-    udgm_nodes = {}
-    mrm_nodes = {}
-
-    udgm_data_collection_overall, udgm_source_routing_overall, udgm_report_overall, udgm_duty_cycle_overall = parse_file(udgm_file_path, udgm_nodes)
-    mrm_data_collection_overall, mrm_source_routing_overall, mrm_report_overall, mrm_duty_cycle_overall = parse_file(mrm_file_path, mrm_nodes)
-
-    udgm_result = ResultData(udgm_nodes, udgm_data_collection_overall, udgm_source_routing_overall, udgm_report_overall, udgm_duty_cycle_overall)
-    mrm_result = ResultData(mrm_nodes, mrm_data_collection_overall, mrm_source_routing_overall, mrm_report_overall, mrm_duty_cycle_overall)
+    result = ResultData(nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
     
-    test_data = TestData(test_path, udgm_result, mrm_result)
-    print(udgm_result, mrm_result)
-    plot_test(test_data)
+    print(result)
+    plot_test(result)
 
 
