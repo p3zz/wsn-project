@@ -1,4 +1,6 @@
 import re
+import sys
+import os
 
 def parse_simulation_config(filename: str):
     regex_random_seed = re.compile(r"^(.*)<randomseed>(?P<random_seed>\d+)</randomseed>")
@@ -133,17 +135,21 @@ def parse_app(filename: str):
 
 if __name__ == '__main__':
 
+    args = sys.argv
+    cooja_config_path = args[1]
+    udgm_config_filename = "udgm.csc"
+    mrm_config_filename = "mrm.csc"
+    udgm_config_path = os.path.join(cooja_config_path, udgm_config_filename)
+    mrm_config_path = os.path.join(cooja_config_path, mrm_config_filename)
     app_filename = "app.c"
     my_collect_filename = "my_collect.h"
     project_config_filename = "project-conf.h"
-    udgm_config_filename = "test_nogui.csc"
-    mrm_config_filename = "test_nogui_mrm.csc"
-
+    
     upward_traffic, downward_traffic, msg_period, msg_delay, sr_msg_period, sr_msg_delay = parse_app(app_filename)
     report_period, report_delay, report_enabled, beacon_period = parse_my_collect(my_collect_filename)
     rdc = parse_project_config(project_config_filename)
-    ugdm_random_seed, udgm_mote_delay = parse_simulation_config(udgm_config_filename)
-    mrm_random_seed, mrm_mote_delay = parse_simulation_config(mrm_config_filename)
+    ugdm_random_seed, udgm_mote_delay = parse_simulation_config(udgm_config_path)
+    mrm_random_seed, mrm_mote_delay = parse_simulation_config(mrm_config_path)
 
     output = ""
     output += "UPWARD_TRAFFIC={}\n".format(upward_traffic)
