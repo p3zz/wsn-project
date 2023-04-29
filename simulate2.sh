@@ -9,6 +9,9 @@ make &&
 # create csv of the map
 python3 $(pwd)/create-map.py ${COOJA_CONFIG_PATH} > ${DEST_DIR}/map.csv &&
 
+# create config
+python3 $(pwd)/create-config.py ${COOJA_CONFIG_PATH} > ${DEST_DIR}/config.txt &&
+
 # run simulation
 echo Simulation started && \
 cooja_nogui ${COOJA_CONFIG_PATH} | grep 'Test script at'
