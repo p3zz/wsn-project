@@ -54,7 +54,8 @@ class Node:
         return "ID: {}\nData Collection: {}\nSource routing: {}\nDuty cycle: {}\n".format(self.id, self.data_collection, self.source_routing, self.duty_cycle)
 
 class ResultData:
-    def __init__(self, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall):
+    def __init__(self, filename, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall):
+        self.filename = filename
         self.nodes = nodes
         self.data_collection_overall = data_collection_overall
         self.source_routing_overall = source_routing_overall
@@ -66,7 +67,8 @@ class ResultData:
             self.data_collection_overall, self.source_routing_overall, self.report_overall, self.duty_cycle_overall
         )
 
-def plot_test(result: ResultData):
+def plot_test(result: ResultData, path: str):
+    plt.figure(path)
     plot_result(result)
     plt.show()
 
@@ -113,6 +115,43 @@ def plot_result(result_data: ResultData):
     plt.xticks(id)
     plt.bar(id, duty_cycle, color ='green',
             width = 0.4)
+
+def add_labels(x,y):
+    for i in range(len(x)):
+        plt.text(x[i],y[i],"{}%".format(y[i]), ha='center')
+
+def plot_comparison(results: list[ResultData]):
+    # Set position of bar on X axis
+    bar_width = 0.25
+    colors = ['red', 'green', 'blue']
+    plt.subplot(2, 1, 1)
+    x = [i for i in range(3)]
+    i = 0
+    for result in results:
+        data = [result.data_collection_overall.pdr, result.source_routing_overall.pdr, result.report_overall.pdr]
+        print(data)
+        plt.bar(x, data, color = colors[i], width = bar_width, edgecolor ='grey', label = result.filename)
+        add_labels(x, data)
+        x = [elem + bar_width for elem in x]
+        i+=1
+
+    plt.legend()
+    plt.ylim(0, 100)
+    plt.xticks([r + bar_width for r in range(3)],
+        ['Data collection PDR', 'Source routing PDR', 'Report PDR'])
+
+    plt.subplot(2, 1, 2)
+    x = [i for i in range(3)]
+    i = 0
+    data = []
+    for result in results:
+        data.append(result.duty_cycle_overall.avg)
+    plt.bar(x, data, width = bar_width, edgecolor ='grey')
+    add_labels(x, data)
+    plt.xticks(x),
+    plt.legend()
+    plt.show()
+
 
 def parse_file(filename, nodes):
 
@@ -325,13 +364,24 @@ def parse_file(filename, nodes):
 if __name__ == '__main__':
 
     args = sys.argv
-    result_path = args[1]
-    nodes = {}
-    data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
+    mode = args[1]
+    option = args[2]
+    if mode == 'analyze':
+        result_path = option
+        nodes = {}
+        data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
 
-    result = ResultData(nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
-    
-    print(result)
-    plot_test(result)
-
-
+        result = ResultData(nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
+        
+        print(result)
+        plot_test(result, result_path)
+    else:
+        result_paths = option.split(',')
+        results = []
+        for result_path in result_paths:
+            nodes = {}
+            data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
+            result = ResultData(result_path, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
+            results.append(result)
+        plot_comparison(results)
+        
