@@ -48,48 +48,52 @@ def parse_energest(filename: str, nodes):
     
     csv_file.close()
 
-def plot_energest(nodes: dict[int, Node], result_type: ResultType):
+def plot_energest(nodes: dict[int, Node]):
     nds = nodes.values()
-    cols = 2
-    rows =  math.ceil(len(nds) / cols)
-    cnt = 1
+    plt.subplot(1,3,1)
     for node in nds:
         time = list(map(lambda entry: entry.time / 1000000, node.energest))
-        # cpu = list(map(lambda entry: entry.cpu_time, node.energest))
         rx = list(map(lambda entry: entry.rx_time, node.energest))
-        tx = list(map(lambda entry: entry.tx_time, node.energest))
-
-        type = "UDGM" if result_type == ResultType.UDGM else "MRM"
-
-        plt.subplot(rows, cols, cnt)
-        # plt.title("Energest ({})".format(node.id))
-        plt.xlabel("time")
-        # plt.plot(time, cpu, color="green", label="[{}] cpu time".format(node.id))
-        plt.plot(time, rx, color="red", label="[{}] rx time".format(node.id))
-        plt.plot(time, tx, color="blue", label="[{}] tx time".format(node.id))
-        plt.legend()
-
-        cnt+=1
+        rx = [sum(rx[:y]) for y in range(1, len(rx) + 1)]
+        plt.plot(time, rx, label=node.id)
     
+    plt.title("RX Time")
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("RX Time")
+
+    plt.subplot(1,3,2)
+    for node in nds:
+        time = list(map(lambda entry: entry.time / 1000000, node.energest))
+        tx = list(map(lambda entry: entry.tx_time, node.energest))
+        tx = [sum(tx[:y]) for y in range(1, len(tx) + 1)]
+        plt.plot(time, tx, label=node.id)
+    
+    plt.title("TX Time")
+    plt.legend()
+    plt.xlabel("Time")
+    plt.ylabel("TX Time")
+    
+    plt.subplot(1,3,3)
+    ids = list(map(lambda node: node.id, nds))
+    cpu_time = [sum([entry.cpu_time for entry in node.energest]) for node in nds]
+    plt.bar(ids, cpu_time)
+    plt.xticks(ids)
+    plt.title("CPU Time")
+    plt.legend()
+    plt.xlabel("Node ID")
+    plt.ylabel("CPU Time")
     plt.show()
 
 if __name__ == '__main__':
 
     args = sys.argv
-    test_path = args[1]
-    energest_filename = "test-energest.csv"
-    udgm_dirname = "UDGM"
-    mrm_dirname = "MRM"
+    energest_path = args[1]
 
-    udgm_nodes: dict[int, Node] = {}
-    mrm_nodes: dict[int, Node] = {}
+    nodes: dict[int, Node] = {}
 
-    udgm_energest_path = os.path.join(test_path, udgm_dirname, energest_filename)
-    mrm_energest_path = os.path.join(test_path, mrm_dirname, energest_filename)
+    parse_energest(energest_path, nodes)
 
-    parse_energest(udgm_energest_path, udgm_nodes)
-    parse_energest(mrm_energest_path, mrm_nodes)
-
-    plot_energest(udgm_nodes, ResultType.UDGM)
+    plot_energest(nodes)
 
 
