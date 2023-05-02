@@ -72,84 +72,129 @@ def plot_test(result: ResultData, path: str):
     plot_result(result)
     plt.show()
 
-def plot_result(result_data: ResultData):
-    id = list(result_data.nodes.keys())
-    nds = list(result_data.nodes.values())
-    data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
-    source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
-    report_pdr = list(map(lambda node : node.report.pdr if node.report else 0, nds))
-    duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
-
-    plt.subplot(1, 4, 1)
-    plt.title("Data collection PDR")
-    plt.xlabel("Node ID")
-    plt.ylabel("PDR")
-    plt.ylim(0, 100)
-    plt.xticks(id)
-    plt.bar(id, data_collection_pdr, color ='red',
-            width = 0.4)
-
-    plt.subplot(1, 4, 2)
-    plt.title("Source routing PDR")
-    plt.xlabel("Node ID")
-    plt.ylabel("PDR")
-    plt.ylim(0, 100)
-    plt.xticks(id)
-    plt.bar(id, source_routing_pdr, color ='blue',
-            width = 0.4)
+def plot_result(results: list[ResultData]):
+    plt.subplot(2, 2, 1)
+    offset = 0
+    width = 0.25
+    colors = ['red', 'green', 'blue']
+    i = 0
+    for result in results:
+        id = list(result.nodes.keys())
+        nds = list(result.nodes.values())
+        data_collection_pdr = list(map(lambda node : node.data_collection.pdr if node.data_collection else 0, nds))
+        data = data_collection_pdr
+        id = list(map(lambda id: id + offset, id))
+        plt.bar(id, data, width = width, edgecolor ='grey', color=colors[i])
+        # add_labels(x, data, fontsize)
+        offset+=width
+        i+=1
     
-    plt.subplot(1, 4, 3)
-    plt.title("Report PDR")
-    plt.xlabel("Node ID")
-    plt.ylabel("PDR")
+    plt.title("Data Collection PDR", fontsize=18)
     plt.ylim(0, 100)
-    plt.xticks(id)
-    plt.bar(id, report_pdr, color ='green',
-            width = 0.4)
+    plt.xticks([i + width for i in range(len(id)+1)], [i for i in range(len(id)+1)])
     
-    plt.subplot(1, 4, 4)
-    plt.title("Duty cycle")
-    plt.xlabel("Node ID")
-    plt.ylabel("Duty Cycle")
-    # plt.ylim(0, 100)
-    plt.xticks(id)
-    plt.bar(id, duty_cycle, color ='green',
-            width = 0.4)
+    plt.subplot(2, 2, 2)
+    offset = 0
+    i = 0
+    for result in results:
+        id = list(result.nodes.keys())
+        nds = list(result.nodes.values())
+        source_routing_pdr = list(map(lambda node : node.source_routing.pdr if node.data_collection else 0, nds))
+        # report_pdr = list(map(lambda node : node.report.pdr if node.report else 0, nds))
+        # duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
 
-def add_labels(x,y):
+        data = source_routing_pdr
+        id = list(map(lambda id: id + offset, id))
+        plt.bar(id, data, width = width, edgecolor ='grey', color=colors[i])
+        # add_labels(x, data, fontsize)
+        offset+=width
+        i+=1
+    
+    plt.title("Source Routing PDR", fontsize=18)
+    plt.ylim(0, 100)
+    plt.xticks([i + width for i in range(len(id)+1)], [i for i in range(len(id)+1)])
+
+    plt.subplot(2, 2, 3)
+    offset = 0
+    i = 0
+    for result in results:
+        id = list(result.nodes.keys())
+        nds = list(result.nodes.values())
+        report_pdr = list(map(lambda node : node.report.pdr if node.report else 0, nds))
+        # duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
+
+        data = report_pdr
+        id = list(map(lambda id: id + offset, id))
+        plt.bar(id, data, width = width, edgecolor ='grey', color=colors[i])
+        # add_labels(x, data, fontsize)
+        offset+=width
+        i+=1
+    
+    plt.title("Report PDR", fontsize=18)
+    plt.ylim(0, 100)
+    plt.xticks([i + width for i in range(len(id)+1)], [i for i in range(len(id)+1)])
+
+    plt.subplot(2, 2, 4)
+    offset = 0
+    i = 0
+    for result in results:
+        id = list(result.nodes.keys())
+        nds = list(result.nodes.values())
+        duty_cycle = list(map(lambda node : node.duty_cycle if node.duty_cycle else 0, nds))
+
+        data = duty_cycle
+        id = list(map(lambda id: id + offset, id))
+        plt.bar(id, data, width = width, edgecolor ='grey', color=colors[i])
+        # add_labels(x, data, fontsize)
+        offset+=width
+        i+=1
+    
+    plt.title("Duty Cycle", fontsize=18)
+    plt.xticks([i + width for i in range(len(id)+1)], [i for i in range(len(id)+1)])
+
+
+def add_labels(x,y,fontsize):
     for i in range(len(x)):
-        plt.text(x[i],y[i],"{}%".format(y[i]), ha='center')
+        plt.text(x[i],y[i],"{}%".format(y[i]), ha='center', fontsize=fontsize)
 
 def plot_comparison(results: list[ResultData]):
     # Set position of bar on X axis
     bar_width = 0.25
+    fontsize=14
     colors = ['red', 'green', 'blue']
+    labels = ['plain', 'nbnr', 'nbnr + npnp']
     plt.subplot(2, 1, 1)
     x = [i for i in range(3)]
     i = 0
     for result in results:
         data = [result.data_collection_overall.pdr, result.source_routing_overall.pdr, result.report_overall.pdr]
         print(data)
-        plt.bar(x, data, color = colors[i], width = bar_width, edgecolor ='grey', label = result.filename)
-        add_labels(x, data)
+        plt.bar(x, data, color = colors[i], width = bar_width, edgecolor ='grey', label = labels[i])
+        add_labels(x, data, fontsize)
         x = [elem + bar_width for elem in x]
         i+=1
-
-    plt.legend()
+    
+    plt.legend(loc='lower right')
+    plt.title("PDR", fontsize=18)
+    plt.legend(loc='lower right')
     plt.ylim(0, 100)
     plt.xticks([r + bar_width for r in range(3)],
-        ['Data collection PDR', 'Source routing PDR', 'Report PDR'])
+        ['Data collection', 'Source routing', 'Report'], fontsize=14)
 
     plt.subplot(2, 1, 2)
-    x = [i for i in range(3)]
     i = 0
     data = []
     for result in results:
-        data.append(result.duty_cycle_overall.avg)
-    plt.bar(x, data, width = bar_width, edgecolor ='grey')
-    add_labels(x, data)
-    plt.xticks(x),
-    plt.legend()
+        x = [i]
+        data = [result.duty_cycle_overall.avg]
+        plt.bar(x, data, color = colors[i], width = bar_width, edgecolor ='grey', label = labels[i])
+        print(x,data)
+        add_labels(x, data, fontsize)
+        x = [elem + bar_width for elem in x]
+        i+=1
+
+    plt.title("Duty Cycle", fontsize=18)
+    plt.xticks([r for r in range(len(labels))], labels, fontsize=14)
     plt.show()
 
 
@@ -366,22 +411,14 @@ if __name__ == '__main__':
     args = sys.argv
     mode = args[1]
     option = args[2]
-    if mode == 'analyze':
-        result_path = option
+    result_paths = option.split(',')
+    results = []
+    for result_path in result_paths:
         nodes = {}
         data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
-
-        result = ResultData(nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
-        
-        print(result)
-        plot_test(result, result_path)
+        result = ResultData(result_path, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
+        results.append(result)
+    if mode == 'analyze':
+        plot_test(results, "")
     else:
-        result_paths = option.split(',')
-        results = []
-        for result_path in result_paths:
-            nodes = {}
-            data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall = parse_file(result_path, nodes)
-            result = ResultData(result_path, nodes, data_collection_overall, source_routing_overall, report_overall, duty_cycle_overall)
-            results.append(result)
         plot_comparison(results)
-        
