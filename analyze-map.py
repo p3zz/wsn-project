@@ -79,57 +79,50 @@ def clear(win):
         item.undraw()
     win.update()
 
-def draw_map(nodes, result_type: ResultType):
+def draw_map(nodes, result_type: ResultType, animated: bool):
     scale = 5 if result_type == ResultType.UDGM else 0.5
     offset = 20
     for key in nodes:
         x_scaled = (nodes[key].position.x * scale) + offset
         y_scaled = (nodes[key].position.y * scale) + offset
-        nodes[key] = Node(nodes[key].id, Position(x_scaled, y_scaled), nodes[key].collection_data) 
-        
+        nodes[key] = Node(nodes[key].id, Position(x_scaled, y_scaled), nodes[key].collection_data)
+    
     nds = list(nodes.values())
     height = max(list(map(lambda node: node.position.y, nds)))
     width = max(list(map(lambda node: node.position.x, nds)))
     win = g.GraphWin("nodes map", width + offset, height + offset, autoflush=True)
     index = 0
-    while True:
+    if not animated:
         for node in nds:
             draw_node(win, node)
-            collection = list(filter(lambda d: d.seqn == index, node.collection_data))
-            for data in collection:
-                draw_link(win, node, nodes[data.parent])
-        draw_seqn(win, index, width * 0.5, offset)
-        win.postscript(file="image.ps", colormode='color')
-        img = Image.open("image.ps")
-        img.save("seqn_{}.png".format(index), "png")
-        index+=1
-        time.sleep(0.5)
-        clear(win)
-        
+        while(1):continue
+    else:
+        while True:
+            for node in nds:
+                draw_node(win, node)
+                collection = list(filter(lambda d: d.seqn == index, node.collection_data))
+                for data in collection:
+                    draw_link(win, node, nodes[data.parent])
+            draw_seqn(win, index, width * 0.5, offset)
+            win.postscript(file="image.ps", colormode='color')
+            img = Image.open("image.ps")
+            img.save("seqn_{}.png".format(index), "png")
+            index+=1
+            time.sleep(0.5)
+            clear(win)
+            
     win.close()    # Close window when done
 
 if __name__ == '__main__':
     args = sys.argv
-    test_path = args[1]
-    map_filename = "map.csv"
-    recv_filename = "test-recv.csv"
-    udgm_dirname = "UDGM"
-    mrm_dirname = "MRM"
+    map_path = args[1]
+    recv_path = args[2]
 
-    udgm_nodes: dict[int, Node] = {}
-    mrm_nodes: dict[int, Node] = {}
+    nodes: dict[int, Node] = {}
 
-    udgm_map_path = os.path.join(test_path, udgm_dirname, map_filename)
-    mrm_map_path = os.path.join(test_path, mrm_dirname, map_filename)
+    parse_map(map_path, nodes)
 
-    udgm_recv_path = os.path.join(test_path, udgm_dirname, recv_filename)
-    mrm_recv_path = os.path.join(test_path, mrm_dirname, recv_filename)
-
-    parse_map(udgm_map_path, udgm_nodes)
-    parse_map(mrm_map_path, mrm_nodes)
-
-    parse_collection(udgm_recv_path, udgm_nodes)
-    parse_collection(mrm_recv_path, mrm_nodes)
+    # parse_collection(recv_path, nodes)
 
     # print(udgm_nodes)
-    draw_map(mrm_nodes, ResultType.MRM)
+    draw_map(nodes, ResultType.UDGM, False)
