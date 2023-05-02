@@ -48,6 +48,8 @@ def parse_my_collect(filename: str):
     regex_report_delay = re.compile(r"^#define TOPOLOGY_REPORT_DELAY \((?P<report_delay>\d+)")
     regex_report_enabled = re.compile(r"^#define TOPOLOGY_REPORT_ENABLED (?P<report_enabled>\d)")
     regex_beacon_period = re.compile(r"^#define BEACON_INTERVAL \((?P<beacon_period>\d+)")
+    regex_nbnr_enabled = re.compile(r"^#define NBNR_ENABLED (?P<nbnr_enabled>\d)")
+    regex_npnr_enabled = re.compile(r"^#define NPNR_ENABLED (?P<npnr_enabled>\d)")
 
     report_period = None
     report_delay = None
@@ -76,9 +78,19 @@ def parse_my_collect(filename: str):
                 d = m.groupdict()
                 beacon_period = int(d["beacon_period"])
                 continue
+            m = regex_nbnr_enabled.match(line)
+            if(m):
+                d = m.groupdict()
+                nbnr_enabled = int(d["nbnr_enabled"])
+                continue
+            m = regex_npnr_enabled.match(line)
+            if(m):
+                d = m.groupdict()
+                npnr_enabled = int(d["npnr_enabled"])
+                continue
 
     f.close()
-    return report_period, report_delay, report_enabled, beacon_period
+    return report_period, report_delay, report_enabled, beacon_period, nbnr_enabled, npnr_enabled
 
 def parse_app(filename: str):
 
@@ -142,7 +154,7 @@ if __name__ == '__main__':
     project_config_filename = "project-conf.h"
     
     upward_traffic, downward_traffic, msg_period, msg_delay, sr_msg_period, sr_msg_delay = parse_app(app_filename)
-    report_period, report_delay, report_enabled, beacon_period = parse_my_collect(my_collect_filename)
+    report_period, report_delay, report_enabled, beacon_period, nbnr_enabled, npnr_enabled = parse_my_collect(my_collect_filename)
     rdc = parse_project_config(project_config_filename)
     random_seed, mote_delay = parse_simulation_config(cooja_config_path)
 
@@ -160,5 +172,7 @@ if __name__ == '__main__':
     output += "RDC={}\n".format(rdc)
     output += "MOTE_DELAY={}\n".format(mote_delay)
     output += "RANDOM_SEED={}\n".format(random_seed)
+    output += "NBNR_ENABLED={}\n".format(nbnr_enabled)
+    output += "NPNR_ENABLED={}\n".format(npnr_enabled)
 
     print(output)
