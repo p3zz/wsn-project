@@ -31,7 +31,6 @@ linkaddr_t dest_list[] = {
   {{0xF7, 0xE1}}, /* Firefly node 30 */
   {{0xF2, 0xD7}}, /* Firefly node 33 */
   {{0xF3, 0xA3}}  /* Firefly node 34 */
-  {{0xD9, 0x76}}  /* Firefly node 2 */
 };
 #else
 linkaddr_t sink = {{0x01, 0x00}}; /* TMote Sky (Cooja): node 1 will be our sink */
