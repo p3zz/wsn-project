@@ -77,8 +77,8 @@ def parse_file(log_file, testbed=False):
         regex_dc = re.compile(r"{}'Energest: (?P<cnt>\d+) (?P<cpu>\d+) "
                               r"(?P<lpm>\d+) (?P<tx>\d+) (?P<rx>\d+)'".format(testbed_record_pattern))
         # EDIT BY FEDERICO PEZZATO
-        regex_report_recv = re.compile(r"{}'App: report_recv from sink node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(record_pattern))
-        regex_report_sent = re.compile(r"{}'My collect: send report node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(record_pattern))
+        regex_report_recv = re.compile(r"{}'App: report_recv from sink node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(testbed_record_pattern))
+        regex_report_sent = re.compile(r"{}'My collect: send report node (?P<node1>\w+):(?P<node2>\w+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(testbed_record_pattern))
         
     else:
         # Regular expressions for COOJA
