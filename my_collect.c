@@ -268,9 +268,7 @@ bool packetbuf_hdrcontains(linkaddr_t addr){
 
 void packetbuf_hdrprint(){
   linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
-  int i = 0;
-  linkaddr_t hops = route[i];
-  i++;
+  int i = 1;
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
     printf("%02x:%02x -> ", route[i].u8[0], route[i].u8[1]);
     i++;
