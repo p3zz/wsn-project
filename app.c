@@ -31,6 +31,7 @@ linkaddr_t dest_list[] = {
   {{0xF7, 0xE1}}, /* Firefly node 30 */
   {{0xF2, 0xD7}}, /* Firefly node 33 */
   {{0xF3, 0xA3}}  /* Firefly node 34 */
+  {{0xD9, 0x76}}  /* Firefly node 2 */
 };
 #else
 linkaddr_t sink = {{0x01, 0x00}}; /* TMote Sky (Cooja): node 1 will be our sink */
@@ -94,7 +95,6 @@ PROCESS_THREAD(app_process, ev, data)
   static test_msg_t msg = {.seqn=0};
   static uint8_t dest_idx = 0;
   static linkaddr_t dest = {{0x00, 0x00}};
-  static int ret;
 
   PROCESS_BEGIN();
 
@@ -127,12 +127,28 @@ PROCESS_THREAD(app_process, ev, data)
       /* Send the packet downwards */
       printf("App: sink sending seqn %d to %02x:%02x\n",
         msg.seqn, dest.u8[0], dest.u8[1]);
-      ret = sr_send(&my_collect, &dest);
+      int ret = sr_send(&my_collect, &dest);
 
-      /* Check that the packet could be sent */
-      if(ret == 0) {
-        printf("App: sink could not send seqn %d to %02x:%02x\n",
-          msg.seqn, dest.u8[0], dest.u8[1]);
+      switch(ret){
+        case -3:
+          printf("App: error sending sending seqn %d to %02x:%02x, loop found\n",
+        msg.seqn, dest.u8[0], dest.u8[1]);
+          break;
+        case -2:
+          printf("App: error sending sending seqn %d to %02x:%02x, cannot alloc header\n",
+        msg.seqn, dest.u8[0], dest.u8[1]);
+          break;
+        case -1:
+          printf("App: error sending sending seqn %d to %02x:%02x, null parent\n",
+        msg.seqn, dest.u8[0], dest.u8[1]);
+          break;
+        case 0:
+          printf("App: error sending sending seqn %d to %02x:%02x, generic error\n",
+        msg.seqn, dest.u8[0], dest.u8[1]);
+          break;
+        case 1:
+          printf("App: seqn %d to %02x:%02x successfully sent\n",
+        msg.seqn, dest.u8[0], dest.u8[1]);
       }
 
       /* Update sequence number and next destination address */
@@ -162,7 +178,21 @@ PROCESS_THREAD(app_process, ev, data)
       memcpy(packetbuf_dataptr(), &msg, sizeof(msg));
       packetbuf_set_datalen(sizeof(msg));
       printf("App: Send seqn %d\n", msg.seqn);
-      my_collect_send(&my_collect);
+      int ret = my_collect_send(&my_collect);
+      switch(ret){
+        case -2:
+          printf("App: error sending seqn %d, cannot alloc header\n", msg.seqn);
+          break;
+        case -1:
+          printf("App: error sending seqn %d, null parent\n", msg.seqn);
+          break;
+        case 0:
+          printf("App: error sending seqn %d, generic error\n", msg.seqn);
+          break;
+        case 1:
+          printf("App: seqn %d successfully sent\n", msg.seqn);
+          break;
+      }
       msg.seqn ++;
     }
 #endif
@@ -214,11 +244,11 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   while(hops <= MAX_PATH_LENGTH){
 
     // if the node doesn't have a parent, exit
-    if(linkaddr_cmp(&parent, &linkaddr_null)) return -3;
+    if(linkaddr_cmp(&parent, &linkaddr_null)) return -1;
 
     // ROUTING LOOP CHECK
     // if the parent is found inside the route, there's a loop
-    if(packetbuf_hdrcontains(parent)) return -4;
+    if(packetbuf_hdrcontains(parent)) return -3;
 
     hops++;
     // if the parent is a sink, add the route length to the header, then unicast the packet
@@ -226,7 +256,6 @@ int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
       // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
       linkaddr_t h = {{hops, 0x00}};
       if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
-      // packetbuf_hdrprint();
       return unicast_send(&conn->uc, &next);
     }
     // otherwise, add the node to the route and compute the next parent
