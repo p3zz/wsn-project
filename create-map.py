@@ -24,8 +24,8 @@ def parse_config(filename: str, nodes: dict[int, Node]):
     regex_simulation_close = re.compile(r"^(.*)</simulation>")
     regex_mote_open = re.compile(r"^(.*)<mote>")
     regex_mote_close = re.compile(r"^(.*)</mote>")
-    regex_mote_x = re.compile(r"^(.*)<x>(?P<x>\d+\.\d+)</x>")
-    regex_mote_y = re.compile(r"^(.*)<y>(?P<y>\d+\.\d+)</y>")
+    regex_mote_x = re.compile(r"^(.*)<x>(?P<x>\d+(\.\d+)?)</x>")
+    regex_mote_y = re.compile(r"^(.*)<y>(?P<y>\d+(\.\d+)?)</y>")
     regex_mote_id = re.compile(r"^(.*)<id>(?P<id>\d+)</id>")
 
     x = None

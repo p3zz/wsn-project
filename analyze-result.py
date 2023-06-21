@@ -162,7 +162,7 @@ def plot_comparison(results: list[ResultData]):
     bar_width = 0.25
     fontsize=14
     colors = ['red', 'green', 'blue']
-    labels = ['plain', 'nbnr', 'nbnr + npnp']
+    labels = ['plain', 'nbnr', 'nbnr + npnr']
     plt.subplot(2, 1, 1)
     x = [i for i in range(3)]
     i = 0

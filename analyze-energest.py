@@ -33,7 +33,7 @@ def parse_energest(filename: str, nodes):
         for row in csv_reader:
             node_id = int(row["node"])
             if node_id:
-                time = int(row["time"])
+                time = float(row["time"])
                 cnt = int(row["cnt"])
                 cpu = int(row["cpu"])
                 lpm = int(row["lpm"])

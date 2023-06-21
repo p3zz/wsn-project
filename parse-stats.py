@@ -10,21 +10,121 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-sink_id = 1 # Change this value if you decide to consider another sink!
+sink_id = 2 # Change this value if you decide to consider another sink!
 
 # Firefly addresses
 addr_id_map = {
-    "f7:9c":  1, "d9:76":  2, "f3:84":  3, "f3:ee":  4, "f7:92":  5,
-    "f3:9a":  6, "de:21":  7, "f2:a1":  8, "d8:b5":  9, "f2:1e": 10,
-    "d9:5f": 11, "f2:33": 12, "de:0c": 13, "f2:0e": 14, "d9:49": 15,
-    "f3:dc": 16, "d9:23": 17, "f3:8b": 18, "f3:c2": 19, "f3:b7": 20,
-    "de:e4": 21, "f3:88": 22, "f7:9a": 23, "f7:e7": 24, "f2:85": 25,
-    "f2:27": 26, "f2:64": 27, "f3:d3": 28, "f3:8d": 29, "f7:e1": 30,
-    "de:af": 31, "f2:91": 32, "f2:d7": 33, "f3:a3": 34, "f2:d9": 35,
-    "d9:9f": 36, "f3:90": 50, "f2:3d": 51, "f7:ab": 52, "f7:c9": 53,
-    "f2:6c": 54, "f2:fc": 56, "f1:f6": 57, "f3:cf": 62, "f3:c3": 63,
-    "f7:d6": 64, "f7:b6": 65, "f7:b7": 70, "f3:f3": 71, "f1:f3": 72,
-    "f2:48": 73, "f3:db": 74, "f3:fa": 75, "f3:83": 76, "f2:b4": 77
+    "f7:9c": 1,
+    "d9:76": 2,
+    "f3:84": 3,
+    "f3:ee": 4,
+    "f7:92": 5,
+    "f3:9a": 6,
+    "de:21": 7,
+    "f2:a1": 8,
+    "d8:b5": 9,
+    "f2:1e":10,
+    "d9:5f":11,
+    "f2:33":12,
+    "de:0c":13,
+    "f2:0e":14,
+    "d9:49":15,
+    "f3:dc":16,
+    "d9:23":17,
+    "f3:8b":18,
+    "f3:c2":19,
+    "f3:b7":20,
+    "de:e4":21,
+    "f3:88":22,
+    "f7:9a":23,
+    "f7:e7":24,
+    "f2:85":25,
+    "f2:27":26,
+    "f2:64":27,
+    "f3:d3":28,
+    "f3:8d":29,
+    "f7:e1":30,
+    "de:af":31,
+    "f2:91":32,
+    "f2:d7":33,
+    "f3:a3":34,
+    "f2:d9":35,
+    "d9:9f":36,
+    "f3:90":50,
+    "f2:3d":51,
+    "f7:ab":52,
+    "f7:c9":53,
+    "f2:6c":54,
+    "15:13":55,
+    "f2:fc":56,
+    "f1:f6":57,
+    "15:3f":58,
+    "15:5d":61,
+    "f3:cf":62,
+    "f3:c3":63,
+    "f7:d6":64,
+    "f7:b6":65,
+    "f7:b7":70,
+    "f3:f3":71,
+    "f1:f3":72,
+    "f2:48":73,
+    "f3:db":74,
+    "f3:fa":75,
+    "f3:83":76,
+    "f2:b4":77,
+    "15:db":100,
+    "15:3d":101,
+    "16:5b":102,
+    "14:c3":103,
+    "15:8c":104,
+    "15:f3":105,
+    "16:1b":106,
+    "14:97":107,
+    "15:b4":108,
+    "14:de":109,
+    "16:36":110,
+    "14:f2":111,
+    "15:5a":113,
+    "16:16":114,
+    "15:d4":115,
+    "15:da":116,
+    "14:da":117,
+    "14:ea":118,
+    "14:9b":119,
+    "14:e6":121,
+    "16:31":122,
+    "14:c9":123,
+    "14:99":124,
+    "15:bc":125,
+    "15:7b":126,
+    "16:fe":127,
+    "15:f2":128,
+    "14:e8":129,
+    "14:a8":130,
+    "15:87":131,
+    "15:b0":132,
+    "15:20":133,
+    "15:92":134,
+    "14:ce":135,
+    "15:3e":136,
+    "15:4c":137,
+    "16:71":138,
+    "f2:eb":139,
+    "f2:e1":140,
+    "f7:c3":141,
+    "f3:af":142,
+    "f7:af":143,
+    "f3:f0":144,
+    "16:5f":145,
+    "15:ea":146,
+    "16:33":147,
+    "16:2d":148,
+    "15:c4":149,
+    "15:4f":150,
+    "16:28":151,
+    "16:99":152,
+    "15:95":153,
+    "16:5c":154,
 }
 
 nodes = []
@@ -70,7 +170,7 @@ def parse_file(log_file, testbed=False):
         testbed_record_pattern = r"\[(?P<time>.{23})\] INFO:firefly\.(?P<self_id>\d+): \d+\.firefly < b"
         regex_node = re.compile(r"{}'Rime started with address (?P<src1>\d+).(?P<src2>\d+)'".format(testbed_record_pattern))
         # EDIT BY FEDERICO PEZZATO
-        regex_recv = re.compile(r"{}'App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent>\w+)'".format(testbed_record_pattern))
+        regex_recv = re.compile(r"{}'App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent1>\w+):(?P<parent2>\w+)'".format(testbed_record_pattern))
         regex_sent = re.compile(r"{}'App: Send seqn (?P<seqn>\d+)'".format(testbed_record_pattern))
         regex_srrecv = re.compile(r"{}'App: sr_recv from sink seqn (?P<seqn>\d+) hops (?P<hops>\d+) node metric (?P<metric>\d+)'".format(testbed_record_pattern))
         regex_srsent = re.compile(r"{}'App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)'".format(testbed_record_pattern))
@@ -85,7 +185,7 @@ def parse_file(log_file, testbed=False):
         record_pattern = r"(?P<time>[\w:.]+)\s+ID:(?P<self_id>\d+)\s+"
         regex_node = re.compile(r"{}Rime started with address (?P<src1>\d+).(?P<src2>\d+)".format(record_pattern))
         # EDIT BY FEDERICO PEZZATO
-        regex_recv = re.compile(r"{}App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent>\w+)".format(record_pattern))
+        regex_recv = re.compile(r"{}App: Recv from (?P<src1>\w+):(?P<src2>\w+) seqn (?P<seqn>\d+) hops (?P<hops>\d+) parent (?P<parent1>\w+):(?P<parent2>\w+)".format(record_pattern))
         regex_sent = re.compile(r"{}App: Send seqn (?P<seqn>\d+)".format(record_pattern))
         regex_srrecv = re.compile(r"{}App: sr_recv from sink seqn (?P<seqn>\d+) hops (?P<hops>\d+) node metric (?P<metric>\d+)".format(record_pattern))
         regex_srsent = re.compile(r"{}App: sink sending seqn (?P<seqn>\d+) to (?P<dest1>\w+):(?P<dest2>\w+)".format(record_pattern))
@@ -146,17 +246,22 @@ def parse_file(log_file, testbed=False):
                     except KeyError as e:
                         print("KeyError Exception: key {} not found in "
                               "addr_id_map".format(src_addr))
+                    
+                    parent_addr = "{}:{}".format(d["parent1"], d["parent2"])
+                    try:
+                        parent = addr_id_map[parent_addr]
+                    except KeyError as e:
+                        print("KeyError Exception: key {} not found in "
+                              "addr_id_map".format(parent_addr))
+                    
                 else:
                     ts = d["time"]
                     src = int(d["src1"], 16) # Discard second byte, and convert to decimal
+                    parent = int(d["parent1"], 16) # Discard second byte, and convert to decimal
+                
                 dest = int(d["self_id"])
                 seqn = int(d["seqn"])
                 hops = int(d["hops"])
-                # EDIT BY FEDERICO PEZZATO
-                # FIXME check parent also for testbed as it's done for the src_addr
-                parent = int(d["parent"], 16) # Discard second byte, and convert to decimal
-
-                # EDIT BY FEDERICO PEZZATO 
                 # Write to CSV file
                 frecv.write("{}\t{}\t{}\t{}\t{}\t{}\n".format(ts, dest, src, seqn, hops, parent))
 
