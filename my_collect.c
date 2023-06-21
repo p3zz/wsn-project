@@ -63,7 +63,7 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
 
 /* Topology report timer callback */
 void report_timer_cb(void* ptr){
-  struct my_collect_conn* conn = (struct my_collect_conn*)ptr; 
+  struct my_collect_conn* conn = (struct my_collect_conn*)ptr;
   send_report(&conn->uc, linkaddr_node_addr, conn->parent);
 #if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 0
   ctimer_set(&conn->report_timer, TOPOLOGY_REPORT_PERIOD, report_timer_cb, conn);
@@ -71,6 +71,7 @@ void report_timer_cb(void* ptr){
 }
 
 void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent){
+  if(linkaddr_cmp(&parent, &linkaddr_null)) return;
   struct topology_report report = {.source = source, .parent = parent};
   packetbuf_clear();
   packetbuf_copyfrom(&report, sizeof(report));
@@ -186,13 +187,7 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     // check if we have reached the destination
     if (linkaddr_cmp(&next, &linkaddr_null)){
       if (!packetbuf_hdrreduce(sizeof(next))) return;
-      // if the remaining packetbuf is empty, we received an ack
-      if(packetbuf_datalen() == 0){
-        ctimer_stop(&conn->report_timer);
-        printf("ack received\n");
-      }else{
-        conn->callbacks->sr_recv(conn, hops.u8[0]);
-      }
+      conn->callbacks->sr_recv(conn, hops.u8[0]);
       return;
     }
 
