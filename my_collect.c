@@ -36,8 +36,10 @@ struct unicast_callbacks uc_cb = {
 struct topology_report* topology = NULL;
 int topology_size = 0;
 /*---------------------------------------------------------------------------*/
-void my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
-                bool is_sink, const struct my_collect_callbacks *callbacks){
+void
+my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
+                bool is_sink, const struct my_collect_callbacks *callbacks)
+{
 
   linkaddr_copy(&conn->parent, &linkaddr_null);
   conn->metric = 65535;
@@ -62,7 +64,9 @@ void my_collect_open(struct my_collect_conn* conn, uint16_t channels,
 }
 
 /* Topology report timer callback */
-void report_timer_cb(void* ptr){
+void
+report_timer_cb(void* ptr)
+{
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr;
   send_report(&conn->uc, linkaddr_node_addr, conn->parent);
 #if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 0
@@ -70,7 +74,9 @@ void report_timer_cb(void* ptr){
 #endif
 }
 
-void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent){
+void
+send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent)
+{
   if(linkaddr_cmp(&parent, &linkaddr_null)) return;
   struct topology_report report = {.source = source, .parent = parent};
   packetbuf_clear();
@@ -80,7 +86,9 @@ void send_report(struct unicast_conn* uc, linkaddr_t source, linkaddr_t parent){
 }
 
 /* Send beacon using the current seqn and metric */
-void send_beacon(struct my_collect_conn* conn){
+void
+send_beacon(struct my_collect_conn* conn)
+{
   /* Prepare the beacon message */
   struct beacon_msg beacon = {
     .seqn = conn->beacon_seqn, .metric = conn->metric};
@@ -92,7 +100,9 @@ void send_beacon(struct my_collect_conn* conn){
 }
 /*---------------------------------------------------------------------------*/
 /* Beacon timer callback */
-void beacon_timer_cb(void* ptr){
+void
+beacon_timer_cb(void* ptr)
+{
   struct my_collect_conn* conn = (struct my_collect_conn*)ptr; /* [Side note] Even an implicit cast
                                                                 * struct my_collect_conn* conn = ptr;
                                                                 * works correctly */
@@ -108,7 +118,9 @@ void beacon_timer_cb(void* ptr){
 }
 /*---------------------------------------------------------------------------*/
 /* Beacon receive callback */
-void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
+void
+bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
+{
   struct beacon_msg beacon;
   int16_t rssi;
 
@@ -153,19 +165,21 @@ void bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender){
 
 
 /* Data Collection: send function */
-int my_collect_send(struct my_collect_conn *conn){
-  if (linkaddr_cmp(&conn->parent, &linkaddr_null)) return -1; // Inform the app that my_collect is currently unable to forward/deliver the packet
+int
+my_collect_send(struct my_collect_conn *conn)
+{
+  if (linkaddr_cmp(&conn->parent, &linkaddr_null)) return -1;
   if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2;
   struct topology_report report = {.source=linkaddr_node_addr, .parent=conn->parent};
-  struct collect_header hdr = {.report = report, .hops = 0}; // Prepare the collection header
-  memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr)); /* Copy the collection header in front of 
-                                                  * the application payload (at the beginning of
-                                                  * the packet buffer) */
+  struct collect_header hdr = {.report = report, .hops = 0};
+  memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr));
   return unicast_send(&conn->uc, &conn->parent);
 }
-/*---------------------------------------------------------------------------*/
+
 /* Data receive callback */
-void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
+void
+uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
+{
   /* Get the pointer to the overall structure my_collect_conn from its field uc */
   struct my_collect_conn* conn = (struct my_collect_conn*)(((uint8_t*)uc_conn) - 
     offsetof(struct my_collect_conn, uc));
@@ -240,18 +254,21 @@ void uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from){
     }
   }
 }
-/*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
 
 // allocates the space for an addr, then copy it inside the packetbuf header
-bool packetbuf_hdrcopy_linkaddr(linkaddr_t addr){
+bool
+packetbuf_hdrcopy_linkaddr(linkaddr_t addr)
+{
   if (!packetbuf_hdralloc(sizeof(addr))) return false;
   memcpy(packetbuf_hdrptr(), &addr, sizeof(addr));
   return true;
 }
 
-bool packetbuf_hdrcontains(linkaddr_t addr){
+bool
+packetbuf_hdrcontains(linkaddr_t addr)
+{
   linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
   int i = 0;
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
@@ -261,7 +278,9 @@ bool packetbuf_hdrcontains(linkaddr_t addr){
   return false;
 }
 
-void packetbuf_hdrprint(){
+void
+packetbuf_hdrprint()
+{
   linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
   int i = 1;
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
@@ -272,7 +291,9 @@ void packetbuf_hdrprint(){
 }
 
 /*TOPOLOGY---------------------------------------------------------------------------*/
-int topology_set(linkaddr_t node, linkaddr_t parent){
+int
+topology_set(linkaddr_t node, linkaddr_t parent)
+{
   if(topology == NULL) return -1;
   int i;
   // search for node in topology
@@ -292,7 +313,9 @@ int topology_set(linkaddr_t node, linkaddr_t parent){
   return 0;
 }
 
-linkaddr_t topology_get(linkaddr_t node){
+linkaddr_t
+topology_get(linkaddr_t node)
+{
   if(topology == NULL) return linkaddr_null;
   int i;
   for(i=0;i<topology_size;i++){
@@ -303,13 +326,17 @@ linkaddr_t topology_get(linkaddr_t node){
   return linkaddr_null;
 }
 
-void topology_allocate(){
+void
+topology_allocate()
+{
   if(topology != NULL) return;
   topology = (struct topology_report*) malloc(MAX_NODES * sizeof(struct topology_report));
   topology_size = 0;
 }
 
-void topology_print(){
+void
+topology_print()
+{
   if(topology == NULL) return;
   printf("topology: \n");
   int i;
@@ -318,10 +345,14 @@ void topology_print(){
   }
 }
 
-int random_int(int max){
+int
+random_int(int max)
+{
    return random_rand() % (max + 1);
 }
 
-float random_float(float max){
+float
+random_float(float max)
+{
   return (float)random_rand() / (float)(RAND_MAX / max);
 }
