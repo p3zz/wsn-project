@@ -34,6 +34,12 @@ Use:
 ./simulate.sh <csc_folder>
 ```
 
+Example:
+```bash
+./simulate.sh csc/plain/
+```
+
+
 ### simulate2.sh
 takes a .csc configuration file as argument, create the current state file of the project (values of some constants), create the map.csv, then run the no-gui simulation and writes the resulting file inside result.txt.
 
@@ -42,6 +48,11 @@ This script is used by simulate.sh
 Use:
 ```bash
 ./simulate2.sh <csc_file> > result.txt
+```
+
+Example:
+```bash
+./simulate2.sh csc/plain/udgm.csc > result.txt
 ```
 
 ### parse-stats
