@@ -137,10 +137,10 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
 
   rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
-  // The beacon is either too weak or too old, ignore it
+  /* The beacon is either too weak or too old, ignore it */
   if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; 
   if (beacon.seqn == conn->beacon_seqn){
-    // The beacon is not new and the metric is higher than the previous, ignore it
+    /* The beacon is not new and the metric is higher than the previous, ignore it*/ 
     if(beacon.metric+1 >= conn->metric) return; 
   }
 #if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 1
@@ -184,35 +184,35 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
   struct my_collect_conn* conn = (struct my_collect_conn*)(((uint8_t*)uc_conn) - 
     offsetof(struct my_collect_conn, uc));
 
-  // ---------------- DOWNWARD DATA-----------------  
-  // if the data comes from a parent, it must be downward data
+  /* ---------------- DOWNWARD DATA-----------------  */ 
+  /* if the data comes from a parent, it must be downward data */ 
   if (linkaddr_cmp(from, &conn->parent)) {
     // ---------------- SOURCE ROUTING RECV -----------------  
-    // retrieve the route length (on the top of the header), then remove it
+    /* retrieve the route length (on the top of the header), then remove it */ 
     linkaddr_t hops;
     memcpy(&hops, packetbuf_dataptr(), sizeof(hops));
     printf("hops: %d\n", hops.u8[0]);
     if (!packetbuf_hdrreduce(sizeof(hops))) return;
 
-    // retrieve the next node to hop to, but we don't remove it. It will be overwritten by the route length later
+    /* retrieve the next node to hop to, but we don't remove it. It will be overwritten by the route length later */
     linkaddr_t next;
     memcpy(&next, packetbuf_dataptr(), sizeof(next));
 
-    // check if we have reached the destination
+    /* check if we have reached the destination */
     if (linkaddr_cmp(&next, &linkaddr_null)){
       if (!packetbuf_hdrreduce(sizeof(next))) return;
       conn->callbacks->sr_recv(conn, hops.u8[0]);
       return;
     }
 
-    // overwrite the current node with the route length
+    /* overwrite the current node with the route length */
     memcpy(packetbuf_dataptr(), &hops, sizeof(linkaddr_t));
 
     unicast_send(uc_conn, &next);
   }
-  // ---------------- UPWARD DATA-----------------  
+  /* ---------------- UPWARD DATA----------------- */  
   else{
-    // ---------------- TOPOLOGY REPORT RECV -----------------  
+    /* ---------------- TOPOLOGY REPORT RECV -----------------  */
     if(packetbuf_datalen() == sizeof(struct topology_report)){
       struct topology_report report;
       memcpy(&report, packetbuf_dataptr(), sizeof(report));
@@ -225,11 +225,11 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
         printf("[DATA]: ERROR, unable to forward data packet");
         return;
       }
-      // else forward the packet to the parent
+      /* else forward the packet to the parent */
       unicast_send(&conn->uc, &conn->parent);
     }
     else{
-      // ---------------- COLLECT HEADER RECV -----------------  
+      /* ---------------- COLLECT HEADER RECV ----------------- */ 
       struct collect_header hdr;
 
       memcpy(&hdr, packetbuf_dataptr(), sizeof(hdr));
@@ -242,14 +242,14 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
           return;
         }
         topology_set(hdr.report.source, hdr.report.parent);
-        conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); // Call the sink recv callback function
+        conn->callbacks->recv(&hdr.report.source, &hdr.report.parent, hdr.hops); /* Call the sink recv callback function */
       } else { /* Non-sink node acting as a forwarder. Send the received packet to the node's parent in unicast */
         if (linkaddr_cmp(&conn->parent, &linkaddr_null)) {
           printf("[DATA]: ERROR, unable to forward data packet -- source: %02x:%02x", hdr.report.source.u8[0], hdr.report.source.u8[1]);
           return;
         }
-        memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); // Update the my-collect header in the packet buffer
-        unicast_send(&conn->uc, &conn->parent); // Send the updated message to the node's parent in unicast
+        memcpy(packetbuf_dataptr(), &hdr, sizeof(hdr)); /* Update the my-collect header in the packet buffer */
+        unicast_send(&conn->uc, &conn->parent); /* Send the updated message to the node's parent in unicast */
       }
     }
   }
@@ -257,7 +257,7 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
 
 /*---------------------------------------------------------------------------*/
 
-// allocates the space for an addr, then copy it inside the packetbuf header
+/* allocates the space for an addr, then copy it inside the packetbuf header */
 bool
 packetbuf_hdrcopy_linkaddr(linkaddr_t addr)
 {
@@ -290,22 +290,21 @@ packetbuf_hdrprint()
   printf("]\n");
 }
 
-/*TOPOLOGY---------------------------------------------------------------------------*/
+/* ----------------------------TOPOLOGY--------------------------- */
 int
 topology_set(linkaddr_t node, linkaddr_t parent)
 {
   if(topology == NULL) return -1;
   int i;
-  // search for node in topology
+  /* search for node in topology */ 
   for(i=0;i<topology_size;i++){
-    // if found, update the parent
+    /* if found, update the parent */ 
     if(linkaddr_cmp(&topology[i].source, &node)){
       linkaddr_copy(&topology[i].parent, &parent);
-      // topology_print();
       return 0;
     }
   }
-  // otherwise, if the space is available, add a new entry and increment the topology size
+  /* otherwise, if the space is available, add a new entry and increment the topology size */
   if(topology_size == MAX_NODES) return -2;
   linkaddr_copy(&topology[topology_size].source, &node);
   linkaddr_copy(&topology[topology_size].parent, &parent);

@@ -300,7 +300,9 @@ PROCESS_THREAD(app_process, ev, data)
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
-static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops) {
+static void 
+recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint8_t hops)
+{
   test_msg_t msg;
   if (packetbuf_datalen() != sizeof(msg)) {
     printf("App: wrong length: %d\n", packetbuf_datalen());
@@ -311,7 +313,9 @@ static void recv_cb(const linkaddr_t *originator, const linkaddr_t *parent, uint
     originator->u8[0], originator->u8[1], msg.seqn, hops, parent->u8[0], parent->u8[1]);
 }
 /*---------------------------------------------------------------------------*/
-static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
+static void
+sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops)
+{
   test_msg_t sr_msg;
   if (packetbuf_datalen() != sizeof(test_msg_t)) {
     printf("App: sr_recv wrong length: %d\n", packetbuf_datalen());
@@ -322,7 +326,9 @@ static void sr_recv_cb(struct my_collect_conn *ptr, uint8_t hops){
     sr_msg.seqn, hops, ptr->metric);
 }
 /*---------------------------------------------------------------------------*/
-static void report_recv_cb(struct my_collect_conn *ptr){
+static void
+report_recv_cb(struct my_collect_conn *ptr)
+{
   struct topology_report msg;
   if (packetbuf_datalen() != sizeof(msg)) {
     printf("App: report_recv wrong length: %d\n", packetbuf_datalen());
@@ -333,7 +339,9 @@ static void report_recv_cb(struct my_collect_conn *ptr){
     msg.source.u8[0], msg.source.u8[1], msg.parent.u8[0], msg.parent.u8[1]);
 }
 /*---------------------------------------------------------------------------*/
-int sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
+int
+sr_send(struct my_collect_conn* conn, linkaddr_t* dest)
+{
   linkaddr_t next = *dest;
   linkaddr_t parent = topology_get(next);
   uint8_t hops = 0;
