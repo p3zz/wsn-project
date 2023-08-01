@@ -33,8 +33,8 @@ struct unicast_callbacks uc_cb = {
   .sent = NULL
 };
 /*---------------------------------------------------------------------------*/
-static struct topology_report* topology = NULL;
-static int topology_size = 0;
+struct topology_report* topology = NULL;
+int topology_size = 0;
 /*---------------------------------------------------------------------------*/
 void
 my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
