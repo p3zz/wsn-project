@@ -135,7 +135,7 @@ linkaddr_t dest_list[] = {
 };
 #else
 linkaddr_t sink = {{0x01, 0x00}}; /* TMote Sky (Cooja): node 1 will be our sink */
-#define APP_NODES 9
+#define APP_NODES 14
 linkaddr_t dest_list[] = {
   {{0x02, 0x00}},
   {{0x03, 0x00}},

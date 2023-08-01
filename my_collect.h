@@ -16,7 +16,7 @@
 // New Beacon New Report
 #define NBNR_ENABLED 1
 // New Parent New Report
-#define NPNR_ENABLED 1
+#define NPNR_ENABLED 0
 #define BEACON_INTERVAL (60 * CLOCK_SECOND) 
 #define BEACON_FORWARD_DELAY (random_rand() % CLOCK_SECOND)
 #define RSSI_THRESHOLD -95

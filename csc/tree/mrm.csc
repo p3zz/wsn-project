@@ -42,8 +42,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>60</x>
-        <y>10</y>
+        <x>600</x>
+        <y>100</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -60,8 +60,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>50</x>
-        <y>30</y>
+        <x>500</x>
+        <y>300</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -78,8 +78,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>70</x>
-        <y>30</y>
+        <x>700</x>
+        <y>300</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -96,8 +96,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>80</x>
-        <y>50</y>
+        <x>800</x>
+        <y>500</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -114,8 +114,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>60</x>
-        <y>50</y>
+        <x>600</x>
+        <y>500</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -132,8 +132,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>40</x>
-        <y>50</y>
+        <x>400</x>
+        <y>500</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -150,8 +150,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>90</x>
-        <y>70</y>
+        <x>900</x>
+        <y>700</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -168,8 +168,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>70</x>
-        <y>70</y>
+        <x>700</x>
+        <y>700</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -186,8 +186,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>50</x>
-        <y>70</y>
+        <x>500</x>
+        <y>700</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -204,8 +204,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>30</x>
-        <y>70</y>
+        <x>300</x>
+        <y>700</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -222,8 +222,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>20</x>
-        <y>90</y>
+        <x>200</x>
+        <y>900</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -240,8 +240,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>40</x>
-        <y>90</y>
+        <x>400</x>
+        <y>900</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -258,8 +258,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>60</x>
-        <y>90</y>
+        <x>600</x>
+        <y>900</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -276,8 +276,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>80</x>
-        <y>90</y>
+        <x>800</x>
+        <y>900</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -294,8 +294,8 @@
       <breakpoints />
       <interface_config>
         org.contikios.cooja.interfaces.Position
-        <x>100</x>
-        <y>90</y>
+        <x>1000</x>
+        <y>900</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -359,6 +359,11 @@
       <mote>7</mote>
       <mote>8</mote>
       <mote>9</mote>
+      <mote>10</mote>
+      <mote>11</mote>
+      <mote>12</mote>
+      <mote>13</mote>
+      <mote>14</mote>
       <showRadioRXTX />
       <showRadioHW />
       <showLEDs />

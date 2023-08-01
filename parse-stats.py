@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-sink_id = 2 # Change this value if you decide to consider another sink!
+sink_id = 1 # Change this value if you decide to consider another sink!
 
 # Firefly addresses
 addr_id_map = {

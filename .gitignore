@@ -10,3 +10,9 @@ test_dc.log
 test.log
 test/
 images/
+app-zoul.map
+app.bin
+app.elf
+app.hex
+app.zoul
+obj_zoul/
