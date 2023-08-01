@@ -346,27 +346,37 @@ sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   uint8_t hops = 0;
 
   /* add checkpoint (null address) that represents the end of the route of the header */ 
-  if (!packetbuf_hdrcopy_linkaddr(linkaddr_null)) return -2;
+  if (!packetbuf_hdrcopy_linkaddr(linkaddr_null)) {
+    return -2;
+  }
 
   while(hops <= MAX_PATH_LENGTH){
 
     /* if the node doesn't have a parent, exit */ 
-    if(linkaddr_cmp(&parent, &linkaddr_null)) return -1;
+    if(linkaddr_cmp(&parent, &linkaddr_null)) {
+      return -1;
+    }
 
     /* ROUTING LOOP CHECK */ 
     /* if the parent is found inside the route, there's a loop */ 
-    if(packetbuf_hdrcontains(parent)) return -3;
+    if(packetbuf_hdrcontains(parent)) {
+      return -3;
+    }
 
     hops++;
     /* if the parent is a sink, add the route length to the header, then unicast the packet */ 
     if(linkaddr_cmp(&parent, &sink)){
       /* embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems */ 
       linkaddr_t h = {{hops, 0x00}};
-      if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
+      if (!packetbuf_hdrcopy_linkaddr(h)) {
+        return -2;
+      }
       return unicast_send(&conn->uc, &next);
     }
     /* otherwise, add the node to the route and compute the next parent */ 
-    if (!packetbuf_hdrcopy_linkaddr(next)) return -2;
+    if (!packetbuf_hdrcopy_linkaddr(next)) {
+      return -2;
+    }
     next = parent;
     parent = topology_get(next);
   }

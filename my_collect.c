@@ -33,8 +33,8 @@ struct unicast_callbacks uc_cb = {
   .sent = NULL
 };
 /*---------------------------------------------------------------------------*/
-struct topology_report* topology = NULL;
-int topology_size = 0;
+static struct topology_report* topology = NULL;
+static int topology_size = 0;
 /*---------------------------------------------------------------------------*/
 void
 my_collect_open(struct my_collect_conn* conn, uint16_t channels, 
@@ -138,10 +138,14 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
   rssi = packetbuf_attr(PACKETBUF_ATTR_RSSI);
 
   /* The beacon is either too weak or too old, ignore it */
-  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn) return; 
+  if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn){
+    return
+  } 
   if (beacon.seqn == conn->beacon_seqn){
     /* The beacon is not new and the metric is higher than the previous, ignore it*/ 
-    if(beacon.metric+1 >= conn->metric) return; 
+    if(beacon.metric+1 >= conn->metric){
+      return;
+    }; 
   }
 #if TOPOLOGY_REPORT_ENABLED == 1 && NBNR_ENABLED == 1
   #if NPNR_ENABLED == 1
@@ -168,8 +172,12 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
 int
 my_collect_send(struct my_collect_conn *conn)
 {
-  if (linkaddr_cmp(&conn->parent, &linkaddr_null)) return -1;
-  if (!packetbuf_hdralloc(sizeof(struct collect_header))) return -2;
+  if (linkaddr_cmp(&conn->parent, &linkaddr_null)){
+    return -1;
+  }
+  if (!packetbuf_hdralloc(sizeof(struct collect_header))){
+    return -2;
+  }
   struct topology_report report = {.source=linkaddr_node_addr, .parent=conn->parent};
   struct collect_header hdr = {.report = report, .hops = 0};
   memcpy(packetbuf_hdrptr(), &hdr, sizeof(hdr));
@@ -192,7 +200,9 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
     linkaddr_t hops;
     memcpy(&hops, packetbuf_dataptr(), sizeof(hops));
     printf("hops: %d\n", hops.u8[0]);
-    if (!packetbuf_hdrreduce(sizeof(hops))) return;
+    if (!packetbuf_hdrreduce(sizeof(hops))) {
+      return;
+    }
 
     /* retrieve the next node to hop to, but we don't remove it. It will be overwritten by the route length later */
     linkaddr_t next;
@@ -200,7 +210,9 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
 
     /* check if we have reached the destination */
     if (linkaddr_cmp(&next, &linkaddr_null)){
-      if (!packetbuf_hdrreduce(sizeof(next))) return;
+      if (!packetbuf_hdrreduce(sizeof(next))) {
+        return
+      };
       conn->callbacks->sr_recv(conn, hops.u8[0]);
       return;
     }
@@ -261,7 +273,9 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
 bool
 packetbuf_hdrcopy_linkaddr(linkaddr_t addr)
 {
-  if (!packetbuf_hdralloc(sizeof(addr))) return false;
+  if (!packetbuf_hdralloc(sizeof(addr))){
+    return false;
+  }
   memcpy(packetbuf_hdrptr(), &addr, sizeof(addr));
   return true;
 }
@@ -272,7 +286,9 @@ packetbuf_hdrcontains(linkaddr_t addr)
   linkaddr_t* route = (linkaddr_t*) packetbuf_hdrptr();
   int i = 0;
   while(!linkaddr_cmp(&route[i], &linkaddr_null)){
-    if(linkaddr_cmp(&route[i], &addr)) return true;
+    if(linkaddr_cmp(&route[i], &addr)) {
+      return true;
+    }
     i++;
   }
   return false;
@@ -294,7 +310,9 @@ packetbuf_hdrprint()
 int
 topology_set(linkaddr_t node, linkaddr_t parent)
 {
-  if(topology == NULL) return -1;
+  if(topology == NULL) {
+    return -1;
+  }
   int i;
   /* search for node in topology */ 
   for(i=0;i<topology_size;i++){
@@ -315,7 +333,9 @@ topology_set(linkaddr_t node, linkaddr_t parent)
 linkaddr_t
 topology_get(linkaddr_t node)
 {
-  if(topology == NULL) return linkaddr_null;
+  if(topology == NULL){
+    return linkaddr_null;
+  }
   int i;
   for(i=0;i<topology_size;i++){
     if(linkaddr_cmp(&topology[i].source, &node)){
@@ -328,7 +348,9 @@ topology_get(linkaddr_t node)
 void
 topology_allocate()
 {
-  if(topology != NULL) return;
+  if(topology != NULL) {
+    return;
+  }
   topology = (struct topology_report*) malloc(MAX_NODES * sizeof(struct topology_report));
   topology_size = 0;
 }
@@ -336,7 +358,9 @@ topology_allocate()
 void
 topology_print()
 {
-  if(topology == NULL) return;
+  if(topology == NULL) {
+    return;
+  }
   printf("topology: \n");
   int i;
   for(i=0;i<topology_size;i++){
