@@ -201,7 +201,7 @@ PROCESS_THREAD(app_process, ev, data)
   /* Start energest to estimate node duty cycle */
   simple_energest_start();
 
-  // ------------------SINK--------------------
+  /* ------------------SINK-------------------- */ 
   if (linkaddr_cmp(&sink, &linkaddr_node_addr)) {
     printf("App: I am sink %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, true, &sink_cb);
@@ -260,7 +260,7 @@ PROCESS_THREAD(app_process, ev, data)
     }
 #endif
   }
-  // ------------------NORMAL NODE--------------------
+  /* ------------------NORMAL NODE-------------------- */
   else {
     printf("App: I am normal node %02x:%02x\n", linkaddr_node_addr.u8[0], linkaddr_node_addr.u8[1]);
     my_collect_open(&my_collect, COLLECT_CHANNEL, false, &node_cb);
@@ -340,33 +340,32 @@ report_recv_cb(struct my_collect_conn *ptr)
 }
 /*---------------------------------------------------------------------------*/
 int
-sr_send(struct my_collect_conn* conn, linkaddr_t* dest)
-{
+sr_send(struct my_collect_conn* conn, linkaddr_t* dest){
   linkaddr_t next = *dest;
   linkaddr_t parent = topology_get(next);
   uint8_t hops = 0;
 
-  // add checkpoint (null address) that represents the end of the route of the header
+  /* add checkpoint (null address) that represents the end of the route of the header */ 
   if (!packetbuf_hdrcopy_linkaddr(linkaddr_null)) return -2;
 
   while(hops <= MAX_PATH_LENGTH){
 
-    // if the node doesn't have a parent, exit
+    /* if the node doesn't have a parent, exit */ 
     if(linkaddr_cmp(&parent, &linkaddr_null)) return -1;
 
-    // ROUTING LOOP CHECK
-    // if the parent is found inside the route, there's a loop
+    /* ROUTING LOOP CHECK */ 
+    /* if the parent is found inside the route, there's a loop */ 
     if(packetbuf_hdrcontains(parent)) return -3;
 
     hops++;
-    // if the parent is a sink, add the route length to the header, then unicast the packet
+    /* if the parent is a sink, add the route length to the header, then unicast the packet */ 
     if(linkaddr_cmp(&parent, &sink)){
-      // embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems
+      /* embed the hops counter inside a linkaddr_t so in the unicast receive callback i can overwrite the databuf without problems */ 
       linkaddr_t h = {{hops, 0x00}};
       if (!packetbuf_hdrcopy_linkaddr(h)) return -2;
       return unicast_send(&conn->uc, &next);
     }
-    // otherwise, add the node to the route and compute the next parent
+    /* otherwise, add the node to the route and compute the next parent */ 
     if (!packetbuf_hdrcopy_linkaddr(next)) return -2;
     next = parent;
     parent = topology_get(next);
