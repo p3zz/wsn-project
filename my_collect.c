@@ -139,7 +139,7 @@ bc_recv(struct broadcast_conn *bc_conn, const linkaddr_t *sender)
 
   /* The beacon is either too weak or too old, ignore it */
   if (rssi < RSSI_THRESHOLD || beacon.seqn < conn->beacon_seqn){
-    return
+    return;
   } 
   if (beacon.seqn == conn->beacon_seqn){
     /* The beacon is not new and the metric is higher than the previous, ignore it*/ 
@@ -211,8 +211,8 @@ uc_recv(struct unicast_conn *uc_conn, const linkaddr_t *from)
     /* check if we have reached the destination */
     if (linkaddr_cmp(&next, &linkaddr_null)){
       if (!packetbuf_hdrreduce(sizeof(next))) {
-        return
-      };
+        return;
+      }
       conn->callbacks->sr_recv(conn, hops.u8[0]);
       return;
     }
