@@ -66,14 +66,14 @@ struct topology_report {
   linkaddr_t source;
   linkaddr_t parent;
 };
-// __attribute__((packed));
+/* __attribute__((packed)); */ 
 /*---------------------------------------------------------------------------*/
 /* Header structure for data packets */
 struct collect_header {
   struct topology_report report; 
   uint8_t hops;
 };
-// __attribute__((packed));
+/* __attribute__((packed)); */ 
 /*---------------------------------------------------------------------------*/
 /* Beacon message structure */
 struct beacon_msg {
