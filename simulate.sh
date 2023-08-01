@@ -18,6 +18,8 @@ TEST_UDGM_DIR="${TEST_CSC}/${TEST_UDGM_NAME}"
 TEST_MRM_DIR="${TEST_CSC}/${TEST_MRM_NAME}"
 
 
+mkdir ${GLOBAL_TEST_DIR}
+
 mkdir ${TEST_DIR} && \
 
 # create test directory
