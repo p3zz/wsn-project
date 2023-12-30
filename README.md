@@ -1,4 +1,13 @@
 # Low-power Wireless Networking for IoT project
+A firmware written in C above Contiki OS. The whole purpose of this project is to emulate a network of nodes represented by a tree with a root, in which every node exchanges different kind of data using 2 traffic patterns:
+
+- from root to other nodes
+- from a single node to root
+
+The topology of the network is kept by the root node, using a table where each row contains the coupling between a node and its parent. Every node must have a single parent, but a single node can be parent of several nodes.
+
+The simulation environment used is Cooja. The csc folder contains a bunch of simulation examples that uses different topologies and RX/TX ratio, noise etc.
+
 ## Build
 ```bash
 make
